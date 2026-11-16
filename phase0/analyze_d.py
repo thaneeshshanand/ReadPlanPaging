@@ -19,6 +19,10 @@ Reads the output directories of tiered.py and writes, per variant:
     recall_cold/warm  of the blocks HOT under the fresh oracle plan but COLD (WARM) under
                       the stale plan, the fraction the same-step scan promoted
     promotion_precision  of the promoted blocks, the fraction HOT under the fresh oracle plan
+    plan_recall_hot   variant f: of the blocks HOT under the oracle plan, the fraction the
+                      live plan (rule B on WARM-width key scores) also marks HOT;
+                      plan_precision_hot the reverse; oracle_hot_live_cold the fraction it
+                      marks COLD (values skipped)
     tail              per query head true attention mass in COLD blocks, before and after
                       promotion: mean and fraction of query heads above 0.02, 0.05, 0.10
     rho_codes         read fraction counting code bits only (PHASE0 E, extended with scan
@@ -34,19 +38,25 @@ Read accounting, as fractions of an fp16 block (keys and values):
     with metadata (head dim D): k(b) = (2bD + 4D/S) / 64D with S blocks sharing a key scale
     (1 block, 16 for group256, static: no per-block term), v(b) = (2bD + 64) / 64D
     fp8         0.5
-    uniform     HOT + WARM (k+v)
+    uniform     HOT + WARM (k(c) + v(c')), c' = value bits (asymmetric uniformK{c}V{c'})
     hot_only    HOT
     fresh       HOT + WARM (k+v) + COLD k(c)          (refresh every step)
     stale       HOT + WARM (k+v) + COLD k(c) / R
     promote     HOT + (WARM - PW)(k+v) + PW (k(c) + 1) + COLD k(1) + PC + COLD k(c) / R
     twotier     HOT + (WARM - PW)(k+v) + PW (k(c) + 1)
     coldkeys    HOT + (WARM - PW)(k+v) + PW (k(c) + 1) + COLD k(c) + PC
+    live        HOT (k(c) + 1) + WARM (k+v) + COLD k(c)   (every key read at c bits, then
+                HOT keys and values at the HOT width)
 where PW and PC are blocks promoted from WARM and COLD. The COLD k(c)/R term charges the
 periodic refresh as a coarse key scan (the simulation refreshes from exact weights).
 
 Decision (docs/PHASE0.md), written to decision.json: the bar is the cheapest uniform cache
-(fp16 or uniform 8/4/3/2-bit, any key codec, bytes with metadata) within 1% perplexity.
-Go if a variant c, d or e stays within 1% and its rho_meta is at most 0.75 x the bar.
+(fp16, uniform 8/4/3/2-bit or asymmetric K/V widths, any key codec, bytes with metadata)
+within 1% perplexity. Go if a variant e or f stays within 1% and its rho_meta is at most
+0.75 x the bar. Variants c and d are still reported but no longer decide.
+
+by_length.csv: per variant and context length (prompt length rounded to the nearest 1K
+tokens), the HOT/WARM/COLD block fractions, perplexity increase and task score.
 Per-codec b* is reported for choosing ladders. Point estimates decide; rows whose 95% CI upper bound crosses 1% are flagged. ppl_increase is
 paired: over the prompts a variant ran on, against fp16 on the same prompts. fp8 is an
 emulation and is labelled "emulation only"; it is not a candidate for b*.
@@ -70,7 +80,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 PPL_LIMIT = 0.01  # perplexity increase allowed for "stays within 1%"
 MIN_SAVING = 0.25  # tiered must read at least 25% fewer bytes than the cheapest passing uniform cache
-TIERED_GO_KINDS = ("promote", "twotier", "coldkeys")  # variants c, d, e
+TIERED_GO_KINDS = ("coldkeys", "live")  # variants e, f decide (c and d were dropped from the go rule)
+TIERED_KINDS = ("promote", "twotier", "coldkeys", "live")  # variants c, d, e, f: reported
 KEY_META_BLOCKS = {"block": 1, "group256": 16, "static": None}  # blocks sharing one key scale/offset
 BOOTSTRAP = 2000
 TAIL = (0.02, 0.05, 0.10)
@@ -98,7 +109,7 @@ def rho(v: dict, fr: dict, with_meta: bool, D: int) -> float:
     if kind == "fp8":
         return 0.5  # per-tensor scale (1.0); no per-block metadata
     if kind == "uniform":
-        return H + W * (k(c) + val(c))
+        return H + W * (k(c) + val(v.get("vbits") or c))
     if kind == "hot_only":
         return H * h
     if kind == "fresh":
@@ -111,6 +122,8 @@ def rho(v: dict, fr: dict, with_meta: bool, D: int) -> float:
         return H * h + (W - PW) * (k(c) + val(c)) + PW * (k(c) + h)
     if kind == "coldkeys":  # COLD keys read at c bits every step, so no separate refresh scan
         return H * h + (W - PW) * (k(c) + val(c)) + PW * (k(c) + h) + C * k(c) + PC * h
+    if kind == "live":
+        return H * (k(c) + h) + W * (k(c) + val(c)) + C * k(c)
     raise ValueError(kind)
 
 
@@ -132,10 +145,11 @@ WIDTHS = (16, 8, 4, 3, 2)  # uniform widths; 16 is fp16
 def decide(rows: list[dict]) -> dict:
     """Go/no-go rule of docs/PHASE0.md on summary rows (paired point estimates).
 
-    Bar: the cheapest uniform cache (fp16 or uniform 8/4/3/2-bit, any key codec, bytes with
-    metadata) that stays within 1%. Go if a variant c/d/e stays within 1% and reads at least
-    25% fewer bytes (rho_meta) than that bar. fp8 is emulation only and is not a candidate.
-    Per-codec b* (lowest uniform width within 1%) is reported for choosing ladders.
+    Bar: the cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V widths, any
+    key codec, bytes with metadata) that stays within 1%. Go if a variant e/f stays within 1%
+    and reads at least 25% fewer bytes (rho_meta) than that bar. Variants c/d are listed but
+    do not decide. fp8 is emulation only and is not a candidate. Per-codec b* (lowest
+    symmetric uniform width within 1%) is reported for choosing ladders.
     """
     ok = lambda r: r["ppl_increase"] <= PPL_LIMIT
     fp16 = next((r for r in rows if r["kind"] == "fp16"), None)
@@ -144,13 +158,14 @@ def decide(rows: list[dict]) -> dict:
     bar = min(passing, key=lambda r: r["rho_meta"]) if passing else None
     budget = (1 - MIN_SAVING) * bar["rho_meta"] if bar else None
     tiered = [r for r in rows if r["kind"] in TIERED_GO_KINDS]
-    fmt = lambda r: {"variant": r["variant"], "hot_bits": r.get("hot_bits", 16), "warm_bits": r["bits"],
+    fmt = lambda r: {"variant": r["variant"], "kind": r["kind"], "decides": r["kind"] in TIERED_GO_KINDS,
+                     "hot_bits": r.get("hot_bits", 16), "warm_bits": r["bits"],
                      "kcodec": r["kcodec"], "ppl_increase": r["ppl_increase"], "ci_hi": r["ppl_increase_ci_hi"],
                      "rho_meta": r["rho_meta"], "within_limit": ok(r), "under_budget": budget is not None and r["rho_meta"] <= budget}
     good = [r for r in tiered if ok(r) and budget is not None and r["rho_meta"] <= budget]
     per_codec = {}
     for kc in sorted({r["kcodec"] for r in rows if r["kind"] == "uniform"}):
-        uni = {r["bits"]: r for r in rows if r["kind"] == "uniform" and r["kcodec"] == kc}
+        uni = {r["bits"]: r for r in rows if r["kind"] == "uniform" and r["kcodec"] == kc and r.get("vbits", r["bits"]) == r["bits"]}
         if fp16:
             uni[16] = fp16
         tested = [b for b in WIDTHS if b in uni]
@@ -162,7 +177,7 @@ def decide(rows: list[dict]) -> dict:
     elif good:
         verdict = "go"
     elif not tiered:
-        verdict = "incomplete: no tiered variant (c, d, e) run"
+        verdict = "incomplete: no tiered variant (e, f) run"
     elif not any(ok(r) for r in tiered):
         verdict = "no-go so far: every tiered variant fails on quality"
     else:
@@ -171,13 +186,33 @@ def decide(rows: list[dict]) -> dict:
         "verdict": verdict,
         "bar": bar and {"variant": bar["variant"], "rho_meta": bar["rho_meta"], "ppl_increase": bar["ppl_increase"]},
         "rho_meta_budget": budget,
-        "tiered": [fmt(r) for r in tiered],
+        "tiered": [fmt(r) for r in rows if r["kind"] in TIERED_KINDS],
         "passing": [fmt(r) for r in good],
         "per_codec": per_codec,
-        "rule": f"bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit, any key codec) with ppl increase <= {PPL_LIMIT:.0%}, "
-                f"bytes with metadata; go if a c/d/e variant has ppl increase <= {PPL_LIMIT:.0%} and rho_meta <= "
+        "rule": f"bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl "
+                f"increase <= {PPL_LIMIT:.0%}, bytes with metadata; go if an e/f variant has ppl increase <= {PPL_LIMIT:.0%} and rho_meta <= "
                 f"{1 - MIN_SAVING:.2f} x bar; fp8 is emulation only and excluded",
     }
+
+
+def by_length(per_prompt: list[dict], kinds: dict) -> list[dict]:
+    """Per variant and context length (prompt length to the nearest 1K tokens): mean block
+    fractions read HOT / WARM / COLD after promotion, paired perplexity increase, task score."""
+    groups = defaultdict(list)
+    for r in per_prompt:
+        if r.get("prompt_len"):
+            groups[(r["variant"], round(r["prompt_len"] / 1024))].append(r)
+    out = []
+    for (name, k), rs in sorted(groups.items(), key=lambda x: (x[0][1], x[0][0])):
+        tok = sum(r["tokens"] for r in rs)
+        sc = [r["task_score"] for r in rs if "task_score" in r]
+        out.append({"variant": name, "kind": kinds.get(name, ""), "context_k": k, "prompts": len(rs), "tokens": tok,
+                    "hot": float(np.mean([r["hot"] for r in rs])), "warm": float(np.mean([r["warm"] for r in rs])),
+                    "cold": float(np.mean([r["cold"] for r in rs])),
+                    "ppl_increase": math.expm1((sum(r["nll_sum"] for r in rs) - sum(r["fp16_nll_sum"] for r in rs)) / max(tok, 1)),
+                    "task_score": float(np.mean(sc)) if sc else "",
+                    "free_agree": float(np.mean([r["free_agree"] for r in rs if "free_agree" in r])) if any("free_agree" in r for r in rs) else ""})
+    return out
 
 
 def free_agreement(gen, ref):
@@ -244,7 +279,11 @@ def main():
                     a["qhead_steps"] += T * L * Hq
                     a["layer_steps"] += T * L
                 ppl_inc = math.exp(d["nll"].mean() - fp_nll.mean()) - 1 if T else float("nan")
-                row = {"run": str(run), "prompt": pid, "task": info.get("task"), "variant": name, "tokens": T,
+                c = d["counts"].sum((0, 1)) if T else np.zeros(6)
+                tot = max(float(c[5]), 1.0)
+                row = {"run": str(run), "prompt": pid, "task": info.get("task"), "prompt_len": info.get("prompt_len"),
+                       "hot": float(c[0] + c[3] + c[4]) / tot, "warm": float(c[1] - c[3]) / tot, "cold": float(c[2] - c[4]) / tot,
+                       "variant": name, "tokens": T,
                        "nll_sum": float(d["nll"].sum()), "fp16_nll_sum": float(fp_nll.sum()),
                        "ppl_increase": ppl_inc, "tf_agree": float(d["agree"].mean()) if T else float("nan")}
                 if "free_ids" in d.files:
@@ -281,14 +320,16 @@ def main():
         ci = bootstrap_ppl_ci([r["nll_sum"] for r in mine], [r["fp16_nll_sum"] for r in mine], [r["tokens"] for r in mine])
         paired = math.expm1((sum(r["nll_sum"] for r in mine) - sum(r["fp16_nll_sum"] for r in mine))
                             / max(sum(r["tokens"] for r in mine), 1))
+        live = v["kind"] == "live"
         row = {
-            "variant": name, "kind": v["kind"], "bits": v["bits"] if v["kind"] in ("uniform",) + TIERED_GO_KINDS + ("fresh", "stale") else "",
+            "variant": name, "kind": v["kind"], "bits": v["bits"] if v["kind"] in ("uniform",) + TIERED_KINDS + ("fresh", "stale") else "",
+            "vbits": (v.get("vbits") or v["bits"]) if v["kind"] == "uniform" else "",
             "kcodec": v.get("kcodec", "block") if v["kind"] not in ("fp16", "fp8", "hot_only") else "",
-            "hot_bits": v.get("hot_bits", 16) if v["kind"] in TIERED_GO_KINDS + ("fresh", "stale", "hot_only") else "",
+            "hot_bits": v.get("hot_bits", 16) if v["kind"] in TIERED_KINDS + ("fresh", "stale", "hot_only") else "",
             "note": "emulation only" if v["kind"] == "fp8" else "",
-            "R": v["R"] if v["kind"] in ("stale",) + TIERED_GO_KINDS else "",
+            "R": v["R"] if v["kind"] in ("stale", "promote", "twotier", "coldkeys") else "",
             "eps_w": v["eps_w"] if v["kind"] not in ("fp16", "fp8", "uniform") else "",
-            "eps_c": v["eps_c"] if v["kind"] in ("fresh", "stale", "promote", "coldkeys") else "",
+            "eps_c": v["eps_c"] if v["kind"] in ("fresh", "stale", "promote", "coldkeys", "live") else "",
             "scan_codec": v.get("scan_codec") if v["kind"] == "promote" else "",
             "tokens": int(a["tokens"]),
             "ppl": math.exp(a["nll"] / a["tokens"]),
@@ -306,10 +347,14 @@ def main():
             "promoted_warm": fr["prom_warm"], "promoted_cold": fr["prom_cold"], "hot_effective": hot_eff,
             "fixup_rate": fr["prom_warm"] + fr["prom_cold"],
             "fixups_per_kv_head_step": (a["prom_warm"] + a["prom_cold"]) / max(a["layer_steps"], 1) / shape["kv_heads"],
-            "recall_cold": a["rec_cold"] / a["ev_cold"] if a["ev_cold"] else "",
-            "recall_warm": a["rec_warm"] / a["ev_warm"] if a["ev_warm"] else "",
+            "recall_cold": a["rec_cold"] / a["ev_cold"] if a["ev_cold"] and not live else "",
+            "recall_warm": a["rec_warm"] / a["ev_warm"] if a["ev_warm"] and not live else "",
             "promotion_precision": (a["rec_cold"] + a["rec_warm"]) / (a["prom_warm"] + a["prom_cold"]) if a["prom_warm"] + a["prom_cold"] else "",
-            "stale_cold_events": int(a["ev_cold"]),
+            "stale_cold_events": int(a["ev_cold"]) if not live else "",
+            # live recall slots: [oracle HOT, of those live HOT, live HOT, oracle HOT that live marks COLD]
+            "plan_recall_hot": a["rec_cold"] / a["ev_cold"] if live and a["ev_cold"] else "",
+            "plan_precision_hot": a["rec_cold"] / a["ev_warm"] if live and a["ev_warm"] else "",
+            "oracle_hot_live_cold": a["rec_warm"] / a["ev_cold"] if live and a["ev_cold"] else "",
             "cold_mass_before": a["before_sum"] / max(a["qhead_steps"], 1),
             "cold_mass_after": a["after_sum"] / max(a["qhead_steps"], 1),
             **{f"frac_qheads_cold_mass_gt_{x}_before": a[f"before_gt{x}"] / max(a["qhead_steps"], 1) for x in TAIL},
@@ -319,7 +364,7 @@ def main():
         }
         rows.append(row)
         layer_rows += [{"variant": name, "layer": i, "attn_err": float(e)} for i, e in enumerate(err_layers)]
-    order = ["fp16", "fp8", "uniform", "hot_only", "fresh", "stale", "promote", "twotier", "coldkeys"]
+    order = ["fp16", "fp8", "uniform", "hot_only", "fresh", "stale", "promote", "twotier", "coldkeys", "live"]
     rows.sort(key=lambda r: (order.index(r["kind"]), str(r["R"]), r["variant"]))
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -335,6 +380,7 @@ def main():
     write("summary.csv", rows)
     write("per_layer_err.csv", layer_rows)
     write("per_prompt.csv", per_prompt)
+    write("by_length.csv", by_length(per_prompt, {r["variant"]: r["kind"] for r in rows}))
     decision = decide(rows)
     (args.out / "decision.json").write_text(json.dumps(decision, indent=2))
     try:
@@ -349,7 +395,9 @@ def main():
     hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13}"
     print(hdr)
     for r in rows:
-        rc = r["recall_cold"]
+        rc = r["recall_cold"] if r["kind"] != "live" else r["plan_recall_hot"]
+        if r["kind"] == "live":
+            r = r | {"promotion_precision": r["plan_precision_hot"]}
         ci = f"{100 * r['ppl_increase']:6.2f} [{100 * r['ppl_increase_ci_lo']:5.2f},{100 * r['ppl_increase_ci_hi']:5.2f}]"
         label = r["variant"] + (" (emulation only)" if r["note"] else "")
         print(f"{label:44} {ci:>22} {r['tf_agree']:6.3f} {r['attn_err_mean']:6.4f} {r['rho_codes']:6.3f} "
@@ -361,7 +409,8 @@ def main():
         print(f"  bar: {decision['bar']['variant']} rho_meta={decision['bar']['rho_meta']:.3f}; budget rho_meta <= {decision['rho_meta_budget']:.3f}")
     for t in decision["tiered"]:
         print(f"  {t['variant']:48} dPPL={100 * t['ppl_increase']:6.2f}% (CI hi {100 * t['ci_hi']:5.2f}%) rho_meta={t['rho_meta']:.3f}"
-              f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}")
+              f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}"
+              f"{'' if t['decides'] else ' (c/d: reported, does not decide)'}")
     for kc, e in decision["per_codec"].items():
         print(f"  b*[{kc}]={e['b_star']} (uniform rho_meta {e['uniform_b_star_rho_meta']})"
               + (f" NON-MONOTONE {e['non_monotone_widths']}" if e["non_monotone_widths"] else ""))

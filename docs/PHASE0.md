@@ -58,10 +58,11 @@ Prefill normally at fp16. Then decode token by token with a patched attention fo
   - **c. Stale plan + same-step promotion.** Apply the tiering rule to this step's coarse scores: fp16 for HOT blocks, 4-bit keys for WARM blocks, the 1-bit key plane for COLD blocks. Any block it marks HOT that was not read at fp16 gets an fp16 read in a second pass.
   - **d. Two tiers** (no COLD, `eps_c = 0`) with the same same-step promotion.
   - **e. COLD keys at 4 bits.** As c, but COLD blocks have their 4-bit keys read every step (values skipped), so promotion scores them like WARM blocks. No separate 1-bit plane and no periodic refresh scan.
+  - **f. Live plan.** No stored plan. Each step reads every key at the WARM width, applies the tiering rule to those scores, then reads values by tier: HOT blocks have keys and values read at the HOT width, WARM blocks have values read at the WARM width, COLD blocks have no values read. No oracle refresh and no fix-ups. Report how often the live plan agrees with the oracle plan: recall and precision of its HOT set, and the fraction of oracle-HOT blocks it marks COLD.
   - **Re-based ladder.** In c, d and e the tiers sit on the uniform ladder found by the pre-screen: HOT is read at b* (fp16 if b* = 16), WARM at the next width down, COLD as above. Fix-up reads and the HOT scores used for promotion are at b* too.
   - Plans in b-e are refreshed every R steps from that step's exact weights. Blocks written since the refresh are HOT.
 - **Key codecs:** how key scales and offsets are shared, for uniform and tiered variants alike: per channel per 16-token block; per channel shared over 256-token groups (blocks of an incomplete group use per-block values until it completes); static per-layer, per-head, per-channel values calibrated on a few prompts kept apart from evaluation (out-of-range keys saturate). Values stay per token.
-- **Baselines:** fp16; fp8 e4m3 (per-tensor scale 1, saturating), labelled **emulation only** until reproduced with vLLM's real fp8 KV cache on the cluster, and never a candidate for b*; uniform 8-, 4-, 3- and 2-bit everywhere, each with every key codec; HOT blocks only with the rest dropped. The newest, partial block is fp16 in the uniform and tiered variants.
+- **Baselines:** fp16; fp8 e4m3 (per-tensor scale 1, saturating), labelled **emulation only** until reproduced with vLLM's real fp8 KV cache on the cluster, and never a candidate for b*; uniform 8-, 4-, 3- and 2-bit everywhere, each with every key codec; asymmetric uniform caches with keys and values at different widths (K4/V3, K4/V2, K3/V4, group256 keys); HOT blocks only with the rest dropped. The newest, partial block is fp16 in the uniform and tiered variants.
 - **Perplexity reference:** a held-out continuation of the prompt's own document (the next 128 tokens of a long LongBench document, teacher-forced), so every prompt contributes the same number of scored tokens. Report the pooled perplexity change with a 95% bootstrap interval over prompts.
 - **Pre-screen (MPS, before cluster runs):** fp16, fp8, uniform 8-, 4-, 3- and 2-bit with each key codec, on about 40 prompts at 4K with at least 5K scored tokens, for a 1.5B and a 3B model. Its result fixes b* and the ladder (below) for the tiered runs.
 - **Metrics:** relative L2 error of each layer's attention output; perplexity of a reference continuation under teacher forcing; token agreement with the fp16 greedy output; the benchmark's task score where one exists.
@@ -78,6 +79,8 @@ For variants c and d, add the same-step reads, with PW and PC the fractions of b
 - c: `rho = HOT + (WARM - PW) * (c/16) + PW * (0.5 * c/16 + 1) + COLD * 0.5 * (1/16) + PC + COLD * 0.5 * (c/16) / R`
 - d: `rho = HOT + (WARM - PW) * (c/16) + PW * (0.5 * c/16 + 1)`
 - e: `rho = HOT + (WARM - PW) * (c/16) + PW * (0.5 * c/16 + 1) + COLD * 0.5 * (c/16) + PC`
+- f: `rho = HOT * (0.5 * c/16 + 1) + WARM * (c/16) + COLD * 0.5 * (c/16)` (every key read at c bits; HOT blocks then read keys and values at the HOT width)
+- asymmetric uniform K{k}/V{v}: `rho = 0.5 * k/16 + 0.5 * v/16` per block
 - fp8: `rho = 0.5`
 
 These count code bits only. Decisions use rho with quantiser metadata (`rho_meta`): an fp16 scale and offset per channel for keys, shared by 1 block, 16 blocks (256-token groups) or none (static), and per token for values. With head dim 128, a 4-bit block read costs 0.32 of an fp16 block with per-block key scales, 0.26 with 256-token groups and 0.26 static; a 1-bit key scan costs 0.09, 0.035 and 0.03.
@@ -92,13 +95,15 @@ These count code bits only. Decisions use rho with quantiser metadata (`rho_meta
 
 "Within 1%" means the pooled teacher-forced perplexity increase over fp16 is at most 1% (point estimate), paired on the same prompts. Report its 95% bootstrap interval over prompts and flag any deciding row whose upper bound is above 1%. Bytes always include quantiser metadata (`rho_meta`).
 
-- **Bar:** the cheapest uniform cache that stays within 1%, across all key codecs and widths (fp16, uniform 8/4/3/2-bit), bytes including metadata. fp8 is emulation only and is not a candidate. On the 1.5B pre-screen this is group256 4-bit (rho_meta 0.264), so the budget is rho_meta <= 0.198.
-- **Ladders:** HOT at the bar's width, WARM at a lower width (4/3 and 4/2 with group256 keys), COLD as now. Per-codec b\* (lowest uniform width within 1%) is reported to guide ladder choice.
-- **Go** if a tiered variant (c, d or e) stays within 1% and reads at least 25% fewer bytes than the bar.
+**Frozen** (2026-11-16) until both the 3B laptop run and the 7B cluster run are in: this rule and the variant list (e and f on the 4/3 and 4/2 ladders) do not change between them.
+
+- **Bar:** the cheapest uniform cache that stays within 1%, across all key codecs and widths (fp16, uniform 8/4/3/2-bit, and the asymmetric K4/V3, K4/V2 and K3/V4), bytes including metadata. fp8 is emulation only and is not a candidate. Each model gets its own bar from its own uniform pre-screen. On the 1.5B pre-screen before the asymmetric baselines, this was group256 4-bit (rho_meta 0.264, budget rho_meta <= 0.198).
+- **Ladders:** HOT/WARM = 4/3 and 4/2 with group256 keys, COLD as now. Per-codec b\* (lowest symmetric uniform width within 1%) is reported but no longer changes the ladders.
+- **Go** if variant e or f stays within 1% and reads at least 25% fewer bytes than the bar. Variants c and d are dropped: earlier results are kept and reported, but they do not decide.
 - **No-go** otherwise. Flag a non-monotone uniform result.
 - **If every tiered variant fails on quality:** run variant a (fresh plan) on the 4/2 ladder to separate "ladder too coarse" from "stale plan", then try per-block keys on a 4/3 ladder as the fallback codec.
 
-Variants a and b do not qualify: a needs exact weights to plan, and b has no check against a stale plan. Report R, the effective HOT fraction (promoted blocks counted as HOT) and the stale-COLD tail beside every deciding row: the fraction of query heads with more than 2%, 5% and 10% of their attention mass in COLD blocks, before and after promotion (`frac_qheads_cold_mass_gt_*`), plus the stability-analysis tail from part C. `analyze_d.py` applies this rule and writes `decision.json`.
+Variants a and b do not qualify: a needs exact weights to plan, and b has no check against a stale plan. On the 7B cluster runs also report the HOT/WARM/COLD block fractions by context length (`by_length.csv`) and free-running task scores on the task set. Report R, the effective HOT fraction (promoted blocks counted as HOT) and the stale-COLD tail beside every deciding row: the fraction of query heads with more than 2%, 5% and 10% of their attention mass in COLD blocks, before and after promotion (`frac_qheads_cold_mass_gt_*`), plus the stability-analysis tail from part C. `analyze_d.py` applies this rule and writes `decision.json`.
 
 ## Known pitfalls
 

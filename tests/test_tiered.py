@@ -236,9 +236,9 @@ def test_decision_rule_cross_codec_bar():
     assert "fp8" not in json.dumps(d["bar"])  # fp8 (0.5, passing) is excluded
     go = analyze_d.decide(base + [_row("e", "coldkeys", 0.009, 0.19, bits=2, kc="group256", hot=4)])
     assert go["verdict"] == "go" and go["passing"][0]["variant"] == "e"
-    over = analyze_d.decide(base + [_row("c", "promote", 0.005, 0.22, bits=3, kc="group256", hot=4)])
+    over = analyze_d.decide(base + [_row("f", "live", 0.005, 0.22, bits=3, kc="group256", hot=4)])
     assert over["verdict"] == "no-go so far: tiered variants within 1% read more than the budget"
-    bad = analyze_d.decide(base + [_row("c", "promote", 0.05, 0.15, bits=2, kc="group256", hot=4)])
+    bad = analyze_d.decide(base + [_row("f", "live", 0.05, 0.15, bits=2, kc="group256", hot=4)])
     assert bad["verdict"] == "no-go so far: every tiered variant fails on quality"
 
 
@@ -270,3 +270,74 @@ def test_bootstrap_ci_brackets_point_estimate():
     lo, hi = analyze_d.bootstrap_ppl_ci(nv, nf, t)
     point = np.expm1((nv.sum() - nf.sum()) / t.sum())
     assert lo < point < hi
+
+
+def test_asymmetric_uniform_names_store_and_rho():
+    vs = tiered.build_variants(["uniformK4V3"], [1e-3], [0.02], 4, kcodecs=["group256"])
+    assert [v.name for v in vs] == ["uniformK4V3_kgroup256"] and vs[0].value_bits == 3
+    assert Variant("uniform", bits=4, vbits=4).name == "uniform4"
+    q, k, v = make_inputs(320)
+    st = CoarseStore(4, values=True, vbits=2)
+    st.update(k[0], v[0])
+    assert st.k[0].max() == 15 and st.v[0].max() <= 3
+    a = run(Variant("uniform", bits=4, vbits=2), q, k, v)
+    b = run(Variant("uniform", bits=4), q, k, v)
+    assert not torch.allclose(a, b)
+    allw = {"hot": 0, "warm": 1, "cold": 0, "prom_warm": 0, "prom_cold": 0}
+    D = 128
+    got = analyze_d.rho({"kind": "uniform", "bits": 4, "vbits": 3, "R": 1, "kcodec": "group256"}, allw, True, D)
+    assert got == pytest.approx((1024 + 32 + 768 + 64) / 8192)
+
+
+def test_asymmetric_uniform_can_set_the_bar_but_not_b_star():
+    base = [_row("fp16", "fp16", 0.0, 1.0, bits=16, kc=""), _row("u4g", "uniform", 0.006, 0.264, 4, kc="group256"),
+            _row("u3g", "uniform", 0.03, 0.2, 3, kc="group256"),
+            _row("k4v3", "uniform", 0.008, 0.233, 4, kc="group256") | {"vbits": 3}]
+    d = analyze_d.decide(base)
+    assert d["bar"]["variant"] == "k4v3" and d["rho_meta_budget"] == pytest.approx(0.75 * 0.233)
+    assert d["per_codec"]["group256"]["b_star"] == 4 and d["per_codec"]["group256"]["uniform_b_star_rho_meta"] == 0.264
+    old = analyze_d.decide(base[:3] + [_row("c", "promote", 0.001, 0.1, bits=3, kc="group256", hot=4)])
+    assert old["verdict"].startswith("incomplete") and not old["tiered"][0]["decides"]  # c no longer decides
+
+
+def test_live_all_hot_is_exact_and_uses_no_stored_plan():
+    q, k, v = make_inputs(320)
+    o = run(Variant("live", bits=3, eps_w=-1.0, eps_c=0.0), q, k, v)
+    assert torch.allclose(o, exact(q, k, v), atol=1e-4)
+    assert "plan" not in tiered.STATE.layers[0]
+
+
+def test_live_finds_spike_from_warm_keys_and_skips_cold_values():
+    n, spike = 640, 300
+    q, k, v = make_inputs(n, spike=spike)
+    o = run(Variant("live", bits=4, eps_w=1e-3, eps_c=0.5), q, k, v)
+    st = tiered.STATE
+    c = st.counts[0]
+    assert c[2] > 0 and c[3] == 0 and c[4] == 0  # some COLD, no fix-ups
+    ev, hit, live_hot, miss_cold = st.recall[0].tolist()
+    assert ev > 0 and hit >= 0.9 * ev and miss_cold <= 0.1 * ev  # live plan mostly agrees with the oracle
+    assert ((o - exact(q, k, v)).norm() / exact(q, k, v).norm()) < 0.1
+    assert Variant("live", bits=3, eps_w=1e-3, eps_c=0.02, hot_bits=4, kcodec="group256").name == \
+        "live_w0.001_c0.02_h4b3_kgroup256"
+
+
+def test_rho_live():
+    fr = {"hot": 0.1, "warm": 0.5, "cold": 0.4, "prom_warm": 0.0, "prom_cold": 0.0}
+    D = 128
+    k4, v4 = (1024 + 32) / 8192, (1024 + 64) / 8192
+    k3, v3 = (768 + 32) / 8192, (768 + 64) / 8192
+    got = analyze_d.rho({"kind": "live", "bits": 3, "R": 1, "hot_bits": 4, "kcodec": "group256"}, fr, True, D)
+    assert got == pytest.approx(0.1 * (k3 + k4 + v4) + 0.5 * (k3 + v3) + 0.4 * k3)
+
+
+def test_by_length_groups_prompts():
+    rows = [{"variant": "e", "prompt_len": 8193, "tokens": 128, "hot": 0.1, "warm": 0.5, "cold": 0.4,
+             "nll_sum": 101.0, "fp16_nll_sum": 100.0},
+            {"variant": "e", "prompt_len": 8190, "tokens": 128, "hot": 0.3, "warm": 0.5, "cold": 0.2,
+             "nll_sum": 100.0, "fp16_nll_sum": 100.0, "task_score": 1.0},
+            {"variant": "e", "prompt_len": 32001, "tokens": 128, "hot": 0.05, "warm": 0.3, "cold": 0.65,
+             "nll_sum": 100.0, "fp16_nll_sum": 100.0}]
+    out = analyze_d.by_length(rows, {"e": "coldkeys"})
+    assert [(r["context_k"], r["prompts"]) for r in out] == [(8, 2), (31, 1)]
+    assert out[0]["hot"] == pytest.approx(0.2) and out[0]["task_score"] == 1.0
+    assert out[0]["ppl_increase"] == pytest.approx(np.expm1(1 / 256))

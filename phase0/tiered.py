@@ -9,7 +9,8 @@ Variants (docs/PHASE0.md, D):
 
     fp16            exact attention (the reference; same fp32 code path as the others)
     fp8             every key and value cast to emulated fp8 e4m3, scale 1, saturating
-    uniform8/4      every full block read from the 8-/4-bit copy
+    uniform8/4/3/2  every full block read from the 8-/4-/3-/2-bit copy
+    uniformK4V3     asymmetric uniform: keys at 4 bits, values at 3 (any K{k}V{v})
     hot_only        fresh oracle HOT set at fp16, every other block dropped
     fresh           (a) oracle plan recomputed every step from exact weights
     stale_R{R}      (b) oracle plan recomputed every R steps, reused unchanged between
@@ -19,6 +20,10 @@ Variants (docs/PHASE0.md, D):
     twotier_R{R}    (d) as (c) with no COLD tier (eps_c = 0), so only WARM is scanned
     coldkeys_R{R}   (e) as (c), but COLD blocks have their 4-bit keys read every step
                     (values skipped), so promotion scores them like WARM blocks
+    live            (f) no stored plan: every step reads all keys at the WARM width, applies
+                    rule B to those scores, then reads values by tier (HOT: keys and values
+                    at the HOT width; WARM: values at the WARM width; COLD: no values).
+                    No oracle refresh, no fix-ups.
 
 Re-based ladder (--hot-bits b*, --warm-bits w): HOT blocks, fix-up reads and the HOT
 scores used for promotion come from a b*-bit copy instead of fp16 (the newest, partial
@@ -95,14 +100,14 @@ TAIL_THRESHOLDS = (0.02, 0.05, 0.10)
 # --------------------------------------------------------------------------- variants
 
 
-TIERED_KINDS = ("hot_only", "fresh", "stale", "promote", "twotier", "coldkeys")
+TIERED_KINDS = ("hot_only", "fresh", "stale", "promote", "twotier", "coldkeys", "live")
 KEY_CODECS = ("block", "group256", "static")
 
 
 @dataclass(frozen=True)
 class Variant:
-    kind: str  # fp16 | fp8 | uniform | hot_only | fresh | stale | promote | twotier | coldkeys
-    bits: int = 4  # coarse bits (WARM, or everything for uniform)
+    kind: str  # fp16 | fp8 | uniform | hot_only | fresh | stale | promote | twotier | coldkeys | live
+    bits: int = 4  # coarse bits (WARM, or everything for uniform; keys only when vbits is set)
     R: int = 1
     eps_w: float = 0.0
     eps_c: float = 0.0
@@ -110,6 +115,11 @@ class Variant:
     scan_codec: str = "minmax"
     kcodec: str = "block"  # key scale/offset sharing: per 16-token block, per 256-token group, static
     hot_bits: int = 16  # HOT tier precision: 16 = fp16, else a b*-bit copy (re-based ladder)
+    vbits: int | None = None  # uniform only: value bits when they differ from the key bits
+
+    @property
+    def value_bits(self) -> int:
+        return self.bits if self.vbits is None else self.vbits
 
     @property
     def name(self) -> str:
@@ -117,13 +127,15 @@ class Variant:
             return self.kind
         ksuf = "" if self.kcodec == "block" else f"_k{self.kcodec}"
         if self.kind == "uniform":
+            if self.value_bits != self.bits:
+                return f"uniformK{self.bits}V{self.value_bits}{ksuf}"
             return f"uniform{self.bits}{ksuf}"
         tag = f"w{self.eps_w:g}"
         if self.kind == "hot_only":
             return f"hot_only_{tag}"
         if self.kind != "twotier":
             tag += f"_c{self.eps_c:g}"
-        r = "" if self.kind == "fresh" else f"_R{self.R}"
+        r = "" if self.kind in ("fresh", "live") else f"_R{self.R}"
         scan = "_scan-meanabs" if self.kind == "promote" and self.scan_codec != "minmax" else ""
         ladder = "" if self.hot_bits >= 16 else f"_h{self.hot_bits}b{self.bits}"
         return f"{self.kind}{r}_{tag}{scan}{ladder}{ksuf}"
@@ -138,6 +150,9 @@ def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",), kc
     for spec in names:
         if spec in ("fp16", "fp8"):
             vs = [Variant(spec)]
+        elif spec.startswith("uniformK"):
+            kb, _, vb = spec[len("uniformK"):].partition("V")
+            vs = [Variant("uniform", bits=int(kb), vbits=int(vb), kcodec=kc) for kc in kcodecs]
         elif spec.startswith("uniform"):
             vs = [Variant("uniform", bits=int(spec[len("uniform"):]), kcodec=kc) for kc in kcodecs]
         else:
@@ -221,8 +236,10 @@ class CoarseStore:
       static    per-layer, per-head, per-channel values calibrated offline (calib)
     """
 
-    def __init__(self, bits: int, values: bool, codec: str = "minmax", kcodec: str = "block", calib: dict | None = None):
+    def __init__(self, bits: int, values: bool, codec: str = "minmax", kcodec: str = "block", calib: dict | None = None,
+                 vbits: int | None = None):
         self.bits, self.values, self.codec, self.kcodec = bits, values, codec, kcodec
+        self.vbits = bits if vbits is None else vbits
         self.k = None  # (code, scale, lo) with code [H, nbf, 16, D]
         self.v = None
         self.nbf = 0
@@ -261,7 +278,7 @@ class CoarseStore:
                 self.groups_done += 1
         if self.values:
             vb = V[:, sl].float().view(h, nbf - self.nbf, BLOCK, d)
-            new_v = quantise(vb, self.bits, dim=3)  # per token
+            new_v = quantise(vb, self.vbits, dim=3)  # per token
             self.v = new_v if self.v is None else tuple(torch.cat([a, b], 1) for a, b in zip(self.v, new_v))
         self.nbf = nbf
 
@@ -298,6 +315,8 @@ class TieredState:
         self.step = 0
         self.layers: dict[int, dict] = {}
         self.calib: dict | None = None  # layer -> {min, max, mean, mad} [H, D]
+        self.verify = False
+        self.verify_err = 0.0  # max relative L2 error of the patched fp16 output against stock SDPA
 
     def layer_calib(self, layer: int, device):
         if self.calib is None:
@@ -367,14 +386,21 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
         counts[1] = h * nb
     elif v.kind == "uniform":
         if "coarse" not in st:
-            st["coarse"] = CoarseStore(v.bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device))
+            st["coarse"] = CoarseStore(v.bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device),
+                                       vbits=v.value_bits)
         store = st["coarse"]
         store.update(K, V)
         o = attend(store.full("k", K), store.full("v", V))
         counts[0], counts[1] = h * (nb - nbf), h * nbf
     else:
         fresh = rule_b(w16, nb, v.eps_w, v.eps_c)
-        if v.kind in ("fresh", "hot_only"):
+        if v.kind == "live":  # (f): rule B on this step's WARM-width key scores, nothing stored
+            if "coarse" not in st:
+                st["coarse"] = CoarseStore(v.bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device))
+            st["coarse"].update(K, V)
+            s_w = torch.bmm(qv, st["coarse"].full("k", K).transpose(1, 2)) * scale
+            tiers = rule_b(torch.softmax(s_w, -1), nb, v.eps_w, v.eps_c)
+        elif v.kind in ("fresh", "hot_only"):
             tiers = fresh
         else:
             if "plan" not in st or STATE.step % v.R == 0:
@@ -421,7 +447,11 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
             tiers = torch.where(promoted, torch.full_like(planned, HOT), planned)
         else:
             promoted = torch.zeros_like(planned, dtype=torch.bool)
-        if v.kind not in ("fresh", "hot_only"):
+        if v.kind == "live":  # agreement with the oracle plan: [oracle HOT, of those live HOT, live HOT, oracle HOT live COLD]
+            fresh_hot, live_hot = fresh == HOT, planned == HOT
+            STATE.recall[layer] = torch.stack([fresh_hot.sum(), (fresh_hot & live_hot).sum(), live_hot.sum(),
+                                               (fresh_hot & (planned == COLD)).sum()]).float()
+        elif v.kind not in ("fresh", "hot_only"):
             fresh_hot = fresh == HOT
             ev_c, ev_w = fresh_hot & (planned == COLD), fresh_hot & (planned == WARM)
             STATE.recall[layer] = torch.stack([ev_c.sum(), (ev_c & promoted).sum(), ev_w.sum(), (ev_w & promoted).sum()]).float()
@@ -450,7 +480,13 @@ def tiered_sdpa(module, query, key, value, attention_mask, dropout=0.0, scaling=
             raise NotImplementedError("sliding-window layers are not supported")
         if attention_mask is not None and attention_mask.dtype == torch.bool and not attention_mask[0, 0, -1, : key.shape[2]].all():
             raise NotImplementedError("masked keys in decode are not supported")
-        return tiered_attention(module, query, key, value, attention_mask, scaling), None
+        o = tiered_attention(module, query, key, value, attention_mask, scaling)
+        if STATE.verify and STATE.variant.kind == "fp16":  # the patched fp16 path against stock SDPA
+            ref = sdpa_attention_forward(module, query, key, value, attention_mask, dropout=dropout, scaling=scaling,
+                                         is_causal=is_causal, **kwargs)[0].float()
+            err = ((o.float() - ref).norm() / ref.norm().clamp_min(1e-12)).item()
+            STATE.verify_err = max(STATE.verify_err, err)
+        return o, None
     return sdpa_attention_forward(module, query, key, value, attention_mask, dropout=dropout, scaling=scaling, is_causal=is_causal, **kwargs)
 
 
@@ -462,13 +498,14 @@ AttentionMaskInterface.register(ATTN_IMPL, sdpa_mask)
 
 
 @torch.inference_mode()
-def decode(model, cache, n0, first_tok, device, *, teacher=None, max_new=0, eos_ids=frozenset()):
+def decode(model, cache, n0, first_tok, device, *, teacher=None, max_new=0, eos_ids=frozenset(), stock=False):
     """Teacher-forced over `teacher` (list of ids, teacher[0] = first_tok) or free-running.
+    stock=True bypasses the patched attention (stock SDPA), for --verify.
 
     Returns dict of per-step arrays (teacher mode) or generated ids (free mode)."""
     cache.crop(n0)
     STATE.reset(STATE.variant, device)
-    STATE.active = True
+    STATE.active = not stock
     rows = {k: [] for k in ("nll", "agree", "err", "counts", "recall", "tail")}
     gen = [first_tok]
     tok_in = first_tok
@@ -555,6 +592,10 @@ def main():
     p.add_argument("--prefill-chunk", type=int, default=2048)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--overwrite", action="store_true")
+    p.add_argument("--verify", action="store_true",
+                   help="per prompt: check the patched fp16 path against stock SDPA (attention output and teacher-forced "
+                        "logits); exits if the attention error exceeds --verify-tol")
+    p.add_argument("--verify-tol", type=float, default=1e-2)
     args = p.parse_args()
 
     torch.manual_seed(args.seed)
@@ -659,6 +700,19 @@ def main():
         else:
             teacher = greedy
         timings = {"prefill_s": round(t_prefill, 2)}
+        verify = None
+        if args.verify:
+            STATE.variant, STATE.verify, STATE.verify_err = variants[0], True, 0.0
+            patched = decode(model, cache, n0, teacher[0], device, teacher=teacher)
+            STATE.verify = False
+            stock = decode(model, cache, n0, teacher[0], device, teacher=teacher, stock=True)
+            verify = {"attn_rel_err_max": STATE.verify_err,
+                      "nll_abs_diff_max": float(np.abs(patched["nll"] - stock["nll"]).max()) if len(stock["nll"]) else 0.0,
+                      "agree_patched": float(patched["agree"].mean()), "agree_stock": float(stock["agree"].mean()),
+                      "ppl_patched": math.exp(patched["nll"].mean()), "ppl_stock": math.exp(stock["nll"].mean())}
+            print(f"  verify {pid}: {verify}")
+            if verify["attn_rel_err_max"] > args.verify_tol:
+                sys.exit(f"--verify failed: patched fp16 attention differs from SDPA by {verify['attn_rel_err_max']:.3g}")
         for v in todo:
             t0 = time.perf_counter()
             STATE.variant = v
@@ -679,7 +733,8 @@ def main():
         }
         (pdir / "prompt.json").write_text(json.dumps(prompt_info))
         with open(done_path, "a") as f:
-            f.write(json.dumps({"id": pid, "prompt_len": n0, "teacher_len": len(teacher), "timings": timings}) + "\n")
+            f.write(json.dumps({"id": pid, "prompt_len": n0, "teacher_len": len(teacher), "timings": timings,
+                                **({"verify": verify} if verify else {})}) + "\n")
         print(f"[{i + 1}/{len(prompts)}] {pid}: prompt={n0} teacher={len(teacher)} prefill={t_prefill:.1f}s")
         del cache
         if device.type == "cuda":
