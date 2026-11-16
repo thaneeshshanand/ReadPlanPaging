@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 import torch
 
@@ -148,3 +149,96 @@ def test_rho_accounting():
     uni = {"kind": "uniform", "bits": 4, "R": 1}
     allw = {"hot": 0, "warm": 1, "cold": 0, "prom_warm": 0, "prom_cold": 0}
     assert analyze_d.rho(uni, allw, True, 128) == pytest.approx((1536 + 1088) / 8192)
+
+
+def test_fp8_emulation_matches_torch():
+    x = torch.randn(50000) * torch.logspace(-4, 2.6, 50000)
+    x = x[x.abs() <= 448]
+    assert torch.equal(tiered.fp8_e4m3(x), x.to(torch.float8_e4m3fn).float())
+    assert tiered.fp8_e4m3(torch.tensor([1000.0, -1000.0])).tolist() == [448.0, -448.0]  # saturates
+
+
+def test_group256_shares_key_scales_once_group_completes():
+    k = torch.randn(H, 600, D).half()
+    st = CoarseStore(4, values=False, kcodec="group256")
+    st.update(k[:, :200], None)  # 12 blocks: group incomplete, per-block scales
+    assert st.groups_done == 0 and not torch.equal(st.k[1][:, 0], st.k[1][:, 1])
+    st.update(k, None)  # 37 blocks: groups 0 and 1 complete
+    assert st.groups_done == 2
+    assert torch.equal(st.k[1][:, 0], st.k[1][:, 15]) and torch.equal(st.k[1][:, 16], st.k[1][:, 31])
+    assert not torch.equal(st.k[1][:, 32], st.k[1][:, 33])  # third group still per block
+    ref = k[:, :256].float().view(H, 16, BLOCK, D)
+    c, s, lo = quantise(ref, 4, dim=(1, 2))
+    assert torch.equal(st.k[0][:, :16], c)
+
+
+def test_static_codec_uses_calibration_and_saturates():
+    calib = {"min": torch.full((H, D), -1.0), "max": torch.full((H, D), 1.0),
+             "mean": torch.zeros(H, D), "mad": torch.full((H, D), 0.5)}
+    k = torch.tensor([-3.0, -1.0, 0.0, 1.0, 3.0]).repeat(H, 64, D // 5 + 1)[:, :, :D].contiguous().half()
+    st = CoarseStore(4, values=False, kcodec="static", calib=calib)
+    st.update(k, None)
+    dq = st.full("k", k)
+    assert dq.max() <= 1.0 + 1e-3 and dq.min() >= -1.0 - 1e-3  # outside the calibrated range saturates
+    one = CoarseStore(1, values=False, codec="meanabs", kcodec="static", calib=calib)
+    one.update(k, None)
+    assert set(one.full("k", k).unique().tolist()) == {-0.5, 0.5}
+
+
+def test_coldkeys_scores_cold_with_4bit_keys_and_recovers_spike():
+    n, spike = 640, 200
+    q, k, v = make_inputs(n)
+    blk = spike // BLOCK
+    u = torch.randn(H, D, generator=torch.Generator().manual_seed(1))
+    for h in range(H):
+        Q = q[0, h * G : (h + 1) * G, 0].float()
+        u[h] -= Q.T @ torch.linalg.solve(Q @ Q.T, Q @ u[h])
+        u[h] = 3 * u[h] / u[h].norm() * D**0.5 / 2
+        k[0, h, blk * BLOCK : (blk + 1) * BLOCK] = -Q.sum(0).half()
+        k[0, h, spike] = u[h].half()
+    run(Variant("coldkeys", R=8, eps_w=1e-3, eps_c=0.5), q, k, v, step=0)
+    assert (tiered.STATE.layers[0]["plan"][:, blk] == COLD).all()
+    assert "scan" not in tiered.STATE.layers[0]  # no separate 1-bit plane
+    st = tiered.STATE
+    st.step = 1
+    st.begin_step()
+    tiered.tiered_attention(SimpleNamespace(layer_idx=0), u.repeat_interleave(G, 0).view(1, H * G, 1, D).half(), k, v, None, None)
+    assert st.recall[0, 0] >= H and st.recall[0, 1] == st.recall[0, 0]
+
+
+def test_rho_key_codecs_and_new_kinds():
+    allw = {"hot": 0, "warm": 1, "cold": 0, "prom_warm": 0, "prom_cold": 0}
+    D = 128
+    r = lambda kc: analyze_d.rho({"kind": "uniform", "bits": 4, "R": 1, "kcodec": kc}, allw, True, D)
+    assert r("block") == pytest.approx((1024 + 512 + 1088) / 8192)
+    assert r("group256") == pytest.approx((1024 + 32 + 1088) / 8192)
+    assert r("static") == pytest.approx((1024 + 1088) / 8192)
+    assert analyze_d.rho({"kind": "fp8", "bits": 8, "R": 1}, allw, True, D) == 0.5
+    fr = {"hot": 0.1, "warm": 0.5, "cold": 0.4, "prom_warm": 0.02, "prom_cold": 0.01}
+    e = analyze_d.rho({"kind": "coldkeys", "bits": 4, "R": 4}, fr, False, D)
+    assert e == pytest.approx(0.1 + 0.48 * 0.25 + 0.02 * 1.125 + 0.4 * 0.125 + 0.01)
+
+
+def _row(name, kind, ppl, rho_meta, bits=4):
+    return {"variant": name, "kind": kind, "bits": bits, "ppl_increase": ppl, "ppl_increase_ci_hi": ppl + 0.004, "rho_meta": rho_meta}
+
+
+def test_decision_rule():
+    base = [_row("fp16", "fp16", 0.0, 1.0), _row("fp8", "fp8", 0.002, 0.5), _row("uniform8", "uniform", 0.0, 0.57, 8)]
+    nogo = analyze_d.decide(base + [_row("uniform4", "uniform", 0.008, 0.32), _row("e", "coldkeys", 0.001, 0.2)])
+    assert nogo["verdict"].startswith("no-go: uniform 4-bit")
+    go = analyze_d.decide(base + [_row("uniform4", "uniform", 0.03, 0.32), _row("e", "coldkeys", 0.009, 0.37)])
+    assert go["verdict"] == "go" and go["cheapest_passing_uniform"]["variant"] == "fp8"
+    assert go["decisive_rows_with_ci_crossing_limit"] == ["e"]
+    short = analyze_d.decide(base + [_row("uniform4", "uniform", 0.03, 0.32), _row("c", "promote", 0.005, 0.38)])
+    assert short["verdict"].startswith("no-go: no tiered")  # 0.38 > 0.75 x 0.5
+
+
+def test_bootstrap_ci_brackets_point_estimate():
+    rng = np.random.default_rng(0)
+    nf = rng.uniform(200, 400, 40)
+    nv = nf * (1 + rng.normal(0.01, 0.01, 40))
+    t = np.full(40, 128)
+    lo, hi = analyze_d.bootstrap_ppl_ci(nv, nf, t)
+    point = np.expm1((nv.sum() - nf.sum()) / t.sum())
+    assert lo < point < hi

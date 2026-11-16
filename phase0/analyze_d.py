@@ -23,24 +23,32 @@ Reads the output directories of tiered.py and writes, per variant:
                       promotion: mean and fraction of query heads above 0.02, 0.05, 0.10
     rho_codes         read fraction counting code bits only (PHASE0 E, extended with scan
                       and fix-up reads)
-    rho_meta          the same, adding per-block quantiser metadata: fp16 scale and offset
-                      per channel per block for keys, per token for values
+    rho_meta          the same, adding quantiser metadata: fp16 scale and offset per channel
+                      for keys (per block, per 256-token group, or none for static) and per
+                      token for values
+    ppl_increase_ci   95% bootstrap interval over prompts
 
 Read accounting, as fractions of an fp16 block (keys and values):
     fp16 read 1; coarse read k(c) + v(c); coarse key only k(c); 1-bit key scan k(1)
     codes only: k(b) = v(b) = b/32
-    with metadata (head dim D): k(b) = (2bD + 4D) / 64D, v(b) = (2bD + 64) / 64D
+    with metadata (head dim D): k(b) = (2bD + 4D/S) / 64D with S blocks sharing a key scale
+    (1 block, 16 for group256, static: no per-block term), v(b) = (2bD + 64) / 64D
+    fp8         0.5
     uniform     HOT + WARM (k+v)
     hot_only    HOT
     fresh       HOT + WARM (k+v) + COLD k(c)          (refresh every step)
     stale       HOT + WARM (k+v) + COLD k(c) / R
     promote     HOT + (WARM - PW)(k+v) + PW (k(c) + 1) + COLD k(1) + PC + COLD k(c) / R
     twotier     HOT + (WARM - PW)(k+v) + PW (k(c) + 1)
+    coldkeys    HOT + (WARM - PW)(k+v) + PW (k(c) + 1) + COLD k(c) + PC
 where PW and PC are blocks promoted from WARM and COLD. The COLD k(c)/R term charges the
 periodic refresh as a coarse key scan (the simulation refreshes from exact weights).
 
-The go screen (docs/PHASE0.md, Decision) is applied to promote and twotier variants:
-rho_codes <= 0.30, ppl_increase <= 1%, R >= 4 and effective HOT <= 20%.
+Decision (docs/PHASE0.md), written to decision.json: no-go if a uniform 4-bit variant
+stays within 1% perplexity; go if a variant c, d or e (promote, twotier, coldkeys) stays
+within 1% and its rho_meta is at most 0.75 x that of the cheapest uniform cache (fp16, fp8,
+uniform 8/4-bit, any key codec) that also stays within 1%. Point estimates decide; rows
+whose 95% CI upper bound crosses 1% are flagged.
 """
 
 from __future__ import annotations
@@ -59,22 +67,33 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-GO = {"rho": 0.30, "ppl_increase": 0.01, "R": 4, "hot": 0.20}
+PPL_LIMIT = 0.01  # perplexity increase allowed for "stays within 1%"
+MIN_SAVING = 0.25  # tiered must read at least 25% fewer bytes than the cheapest passing uniform cache
+TIERED_GO_KINDS = ("promote", "twotier", "coldkeys")  # variants c, d, e
+KEY_META_BLOCKS = {"block": 1, "group256": 16, "static": None}  # blocks sharing one key scale/offset
+BOOTSTRAP = 2000
 TAIL = (0.02, 0.05, 0.10)
 
 
-def costs(with_meta: bool, D: int):
+def costs(with_meta: bool, D: int, kcodec: str = "block"):
+    """Bytes of a b-bit key / value read for one block and KV head, as a fraction of the
+    fp16 block (64 D bytes for keys and values). Metadata: an fp16 scale and offset per
+    channel (4 D bytes) shared by KEY_META_BLOCKS blocks for keys, per token for values."""
     if not with_meta:
         return (lambda b: b / 32), (lambda b: b / 32)
-    return (lambda b: (2 * b * D + 4 * D) / (64 * D)), (lambda b: (2 * b * D + 64) / (64 * D))
+    shared = KEY_META_BLOCKS[kcodec]
+    kmeta = 0.0 if shared is None else 4 * D / shared
+    return (lambda b: (2 * b * D + kmeta) / (64 * D)), (lambda b: (2 * b * D + 64) / (64 * D))
 
 
 def rho(v: dict, fr: dict, with_meta: bool, D: int) -> float:
-    k, val = costs(with_meta, D)
+    k, val = costs(with_meta, D, v.get("kcodec", "block"))
     kind, c, R, s = v["kind"], v["bits"], v["R"], v.get("scan_bits", 1)
     H, W, C, PW, PC = fr["hot"], fr["warm"], fr["cold"], fr["prom_warm"], fr["prom_cold"]
     if kind == "fp16":
         return 1.0
+    if kind == "fp8":
+        return 0.5  # per-tensor scale (1.0); no per-block metadata
     if kind == "uniform":
         return H + W * (k(c) + val(c))
     if kind == "hot_only":
@@ -87,7 +106,54 @@ def rho(v: dict, fr: dict, with_meta: bool, D: int) -> float:
         return H + (W - PW) * (k(c) + val(c)) + PW * (k(c) + 1) + C * k(s) + PC + C * k(c) / R
     if kind == "twotier":
         return H + (W - PW) * (k(c) + val(c)) + PW * (k(c) + 1)
+    if kind == "coldkeys":  # COLD keys read at c bits every step, so no separate refresh scan
+        return H + (W - PW) * (k(c) + val(c)) + PW * (k(c) + 1) + C * k(c) + PC
     raise ValueError(kind)
+
+
+def bootstrap_ppl_ci(nll_v, nll_f, tokens, n=BOOTSTRAP, seed=0):
+    """95% CI of the pooled perplexity increase, resampling prompts (tokens within a prompt
+    are correlated, so prompts are the unit)."""
+    nll_v, nll_f, tokens = map(np.asarray, (nll_v, nll_f, tokens))
+    if len(tokens) < 2:
+        return float("nan"), float("nan")
+    idx = np.random.default_rng(seed).integers(0, len(tokens), size=(n, len(tokens)))
+    delta = (nll_v[idx].sum(1) - nll_f[idx].sum(1)) / tokens[idx].sum(1)
+    lo, hi = np.percentile(np.expm1(delta), [2.5, 97.5])
+    return float(lo), float(hi)
+
+
+def decide(rows: list[dict]) -> dict:
+    """Go/no-go rule of docs/PHASE0.md on summary rows (point estimates of ppl increase)."""
+    ok = lambda r: r["ppl_increase"] <= PPL_LIMIT
+    uniform = [r for r in rows if r["kind"] in ("fp16", "fp8", "uniform")]
+    passing_uniform = [r for r in uniform if ok(r)]
+    cheapest = min(passing_uniform, key=lambda r: r["rho_meta"]) if passing_uniform else None
+    u4 = [r for r in uniform if r["kind"] == "uniform" and r["bits"] == 4]
+    u4_ok = [r["variant"] for r in u4 if ok(r)]
+    budget = (1 - MIN_SAVING) * cheapest["rho_meta"] if cheapest else None
+    tiered_ok = [r for r in rows if r["kind"] in TIERED_GO_KINDS and ok(r) and budget is not None and r["rho_meta"] <= budget]
+    if not u4:
+        verdict = "incomplete: no uniform 4-bit run"
+    elif u4_ok:
+        verdict = "no-go: uniform 4-bit stays within 1%"
+    elif tiered_ok:
+        verdict = "go"
+    else:
+        verdict = "no-go: no tiered variant within 1% at >= 25% fewer bytes than the cheapest passing uniform cache"
+    flag = lambda r: r["ppl_increase_ci_hi"] > PPL_LIMIT
+    return {
+        "verdict": verdict,
+        "uniform4_within_limit": u4_ok,
+        "cheapest_passing_uniform": cheapest and {"variant": cheapest["variant"], "rho_meta": cheapest["rho_meta"]},
+        "tiered_rho_meta_budget": budget,
+        "tiered_passing": [{"variant": r["variant"], "rho_meta": r["rho_meta"], "ppl_increase": r["ppl_increase"],
+                            "ci_hi_above_limit": flag(r)} for r in tiered_ok],
+        "decisive_rows_with_ci_crossing_limit": [r["variant"] for r in (tiered_ok + [r for r in u4 if ok(r)]) if flag(r)],
+        "rule": f"no-go if any uniform 4-bit variant has ppl increase <= {PPL_LIMIT:.0%}; go if a variant c/d/e has "
+                f"ppl increase <= {PPL_LIMIT:.0%} and rho_meta <= {1 - MIN_SAVING:.2f} x the cheapest uniform cache "
+                f"(fp16, fp8, uniform 8/4-bit) within {PPL_LIMIT:.0%}",
+    }
 
 
 def free_agreement(gen, ref):
@@ -157,6 +223,7 @@ def main():
                     a["layer_steps"] += T * L
                 ppl_inc = math.exp(d["nll"].mean() - fp_nll.mean()) - 1 if T else float("nan")
                 row = {"run": str(run), "prompt": pid, "task": info.get("task"), "variant": name, "tokens": T,
+                       "nll_sum": float(d["nll"].sum()), "fp16_nll_sum": float(fp_nll.sum()),
                        "ppl_increase": ppl_inc, "tf_agree": float(d["agree"].mean()) if T else float("nan")}
                 if "free_ids" in d.files:
                     ref = data["fp16"]["free_ids"].tolist()
@@ -188,14 +255,19 @@ def main():
         pp = [r["ppl_increase"] for r in per_prompt if r["variant"] == name and not math.isnan(r["ppl_increase"])]
         err_layers = np.sqrt(layer_num[name] / np.maximum(layer_den[name], 1e-30))
         hot_eff = fr["hot"] + fr["prom_warm"] + fr["prom_cold"]
+        mine = [r for r in per_prompt if r["variant"] == name and r["tokens"]]
+        ci = bootstrap_ppl_ci([r["nll_sum"] for r in mine], [r["fp16_nll_sum"] for r in mine], [r["tokens"] for r in mine])
         row = {
-            "variant": name, "kind": v["kind"], "R": v["R"] if v["kind"] in ("stale", "promote", "twotier") else "",
-            "eps_w": v["eps_w"] if v["kind"] not in ("fp16", "uniform") else "",
-            "eps_c": v["eps_c"] if v["kind"] in ("fresh", "stale", "promote") else "",
+            "variant": name, "kind": v["kind"], "bits": v["bits"] if v["kind"] in ("uniform",) + TIERED_GO_KINDS + ("fresh", "stale") else "",
+            "kcodec": v.get("kcodec", "block") if v["kind"] not in ("fp16", "fp8", "hot_only") else "",
+            "R": v["R"] if v["kind"] in ("stale",) + TIERED_GO_KINDS else "",
+            "eps_w": v["eps_w"] if v["kind"] not in ("fp16", "fp8", "uniform") else "",
+            "eps_c": v["eps_c"] if v["kind"] in ("fresh", "stale", "promote", "coldkeys") else "",
             "scan_codec": v.get("scan_codec") if v["kind"] == "promote" else "",
             "tokens": int(a["tokens"]),
             "ppl": math.exp(a["nll"] / a["tokens"]),
             "ppl_increase": math.exp(a["nll"] / a["tokens"]) / fp_ppl - 1,
+            "ppl_increase_ci_lo": ci[0], "ppl_increase_ci_hi": ci[1],
             "ppl_increase_prompt_median": float(np.median(pp)) if pp else float("nan"),
             "ppl_increase_prompt_max": max(pp) if pp else float("nan"),
             "tf_agree": a["agree"] / a["tokens"],
@@ -218,13 +290,9 @@ def main():
             "rho_codes": rho(v, fr, False, D),
             "rho_meta": rho(v, fr, True, D),
         }
-        row["go_screen"] = bool(
-            v["kind"] in ("promote", "twotier") and row["rho_codes"] <= GO["rho"] and row["ppl_increase"] <= GO["ppl_increase"]
-            and v["R"] >= GO["R"] and hot_eff <= GO["hot"]
-        )
         rows.append(row)
         layer_rows += [{"variant": name, "layer": i, "attn_err": float(e)} for i, e in enumerate(err_layers)]
-    order = ["fp16", "uniform", "hot_only", "fresh", "stale", "promote", "twotier"]
+    order = ["fp16", "fp8", "uniform", "hot_only", "fresh", "stale", "promote", "twotier", "coldkeys"]
     rows.sort(key=lambda r: (order.index(r["kind"]), str(r["R"]), r["variant"]))
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -240,24 +308,31 @@ def main():
     write("summary.csv", rows)
     write("per_layer_err.csv", layer_rows)
     write("per_prompt.csv", per_prompt)
+    decision = decide(rows)
+    (args.out / "decision.json").write_text(json.dumps(decision, indent=2))
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent, text=True).strip()
     except Exception:
         commit = None
     (args.out / "meta.json").write_text(json.dumps({
         "created_utc": datetime.now(timezone.utc).isoformat(), "runs": [str(r) for r in args.runs], "prompts": n_prompts,
-        "git_commit": commit, "go_criteria": GO, "fp16_ppl": fp_ppl, "run_meta": metas}, indent=2))
+        "git_commit": commit, "decision": decision, "bootstrap_resamples": BOOTSTRAP, "fp16_ppl": fp_ppl, "run_meta": metas}, indent=2))
 
     print(f"{n_prompts} prompts, {int(fp['tokens'])} reference tokens per variant, fp16 ppl {fp_ppl:.4f} -> {args.out}")
-    hdr = f"{'variant':38} {'dPPL%':>7} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13}"
+    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13}"
     print(hdr)
     for r in rows:
         rc = r["recall_cold"]
-        print(f"{r['variant']:38} {100 * r['ppl_increase']:7.2f} {r['tf_agree']:6.3f} {r['attn_err_mean']:6.4f} {r['rho_codes']:6.3f} "
+        ci = f"{100 * r['ppl_increase']:6.2f} [{100 * r['ppl_increase_ci_lo']:5.2f},{100 * r['ppl_increase_ci_hi']:5.2f}]"
+        print(f"{r['variant']:44} {ci:>22} {r['tf_agree']:6.3f} {r['attn_err_mean']:6.4f} {r['rho_codes']:6.3f} "
               f"{r['rho_meta']:6.3f} {r['hot_effective']:6.3f} {r['fixup_rate']:6.4f} {rc if rc == '' else format(rc, '.2f'):>5} "
               f"{r['promotion_precision'] if r['promotion_precision'] == '' else format(r['promotion_precision'], '.2f'):>5} "
-              f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f}"
-              + ("  GO-screen" if r["go_screen"] else ""))
+              f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f}")
+    print(f"\nDecision: {decision['verdict']}")
+    if decision["cheapest_passing_uniform"]:
+        print(f"  cheapest uniform within 1%: {decision['cheapest_passing_uniform']}; tiered budget rho_meta <= {decision['tiered_rho_meta_budget']:.3f}")
+    if decision["decisive_rows_with_ci_crossing_limit"]:
+        print(f"  CI upper bound above 1% for: {decision['decisive_rows_with_ci_crossing_limit']}")
 
 
 if __name__ == "__main__":

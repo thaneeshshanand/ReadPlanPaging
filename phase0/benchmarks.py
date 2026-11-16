@@ -25,6 +25,12 @@ Rouge-L uses the `rouge` package and code similarity uses `fuzzywuzzy` when inst
 otherwise pure-Python stand-ins are used (summary-level Rouge-L, difflib ratio), and
 score_backends() says which.
 
+Continuation sets (--mode continuation) are for teacher-forced perplexity: each record
+is the first C tokens of a long LongBench document (prompt_ids, raw text, no template)
+and the next R tokens of the same document (reference_ids), for tiered.py --reference
+record. Documents are disjoint across records; --calibration K more documents go to
+<out>.calib.jsonl for calibrate_keys.py.
+
 Usage:
     python phase0/benchmarks.py --tokenizer meta-llama/Llama-3.1-8B-Instruct \\
         --out data/prompts/llama8b_8k-32k.jsonl --min-tokens 8000 --max-tokens 32000 \\
@@ -303,6 +309,68 @@ def ruler_records(task: str, length: str):
         }
 
 
+# --------------------------------------------------------------------------- continuation sets
+
+DEFAULT_CONT = ["narrativeqa", "gov_report", "qmsum", "multi_news", "qasper", "lcc"]
+
+
+def continuation_set(tok, files, tasks, lengths, ref_tokens, per_length, n_calib, rng):
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from capture import vocab_sha
+
+    docs = {t: [] for t in tasks}
+    for t in tasks:
+        with open(files["data"] / f"{t}.jsonl") as f:
+            for line in f:
+                d = json.loads(line)
+                docs[t].append((d["_id"], d["context"]))
+        rng.shuffle(docs[t])
+    n_tok: dict[tuple, list[int]] = {}
+
+    def ids_of(t, i):
+        key = (t, docs[t][i][0])
+        if key not in n_tok:
+            n_tok[key] = tok(docs[t][i][1], add_special_tokens=False)["input_ids"]
+        return n_tok[key]
+
+    used, out = set(), {}
+    sha = vocab_sha(tok)
+
+    def take(L, n, kind):
+        got, misses, ti = [], 0, 0
+        cursors = {t: 0 for t in tasks}
+        while len(got) < n and misses < len(tasks):
+            t = tasks[ti % len(tasks)]
+            ti += 1
+            found = False
+            while cursors[t] < len(docs[t]):
+                i = cursors[t]
+                cursors[t] += 1
+                if (t, docs[t][i][0]) in used:
+                    continue
+                ids = ids_of(t, i)
+                if len(ids) >= L + ref_tokens:
+                    used.add((t, docs[t][i][0]))
+                    got.append({
+                        "id": f"{kind}-{t}-{docs[t][i][0][:12]}-{L}",
+                        "prompt_ids": ids[:L], "reference_ids": ids[L : L + ref_tokens],
+                        "chat_template": False, "task": f"continuation_{t}", "max_new_tokens": ref_tokens,
+                        "n_tokens": L, "source": f"LongBench@{files['hf_sha'][:10]}",
+                        "tokenizer": tok.name_or_path, "tokenizer_vocab_sha": sha,
+                    })
+                    found = True
+                    break
+            misses = 0 if found else misses + 1
+        return got
+
+    for L in sorted(lengths, reverse=True):  # longest first: fewest documents qualify
+        out[L] = take(L, per_length, "cont")
+    calib = take(min(lengths), n_calib, "calib") if n_calib else []
+    return out, calib
+
+
 # --------------------------------------------------------------------------- build
 
 
@@ -341,12 +409,31 @@ def main():
     p.add_argument("--ruler-lengths", nargs="*", default=["8k", "16k", "32k"],
                    help="RULER configs to draw from (Llama-3 token lengths: 4k 8k 16k 32k ...)")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--mode", default="tasks", choices=["tasks", "continuation"])
+    p.add_argument("--context-tokens", type=int, nargs="+", default=[4096], help="continuation: context lengths")
+    p.add_argument("--reference-tokens", type=int, default=129, help="continuation: reference length (first token is fed, the rest scored)")
+    p.add_argument("--per-length", type=int, default=40, help="continuation: records per context length")
+    p.add_argument("--calibration", type=int, default=4, help="continuation: extra documents for key calibration")
+    p.add_argument("--cont-tasks", nargs="*", default=DEFAULT_CONT, help="continuation: LongBench tasks to take documents from")
     args = p.parse_args()
     from transformers import AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(args.tokenizer)
     rng = random.Random(args.seed)
     out, report = [], []
+    if args.mode == "continuation":
+        sets, calib = continuation_set(tok, longbench_files(), args.cont_tasks, args.context_tokens,
+                                       args.reference_tokens, args.per_length, args.calibration, rng)
+        for L in args.context_tokens:
+            out += sets[L]
+            for t in args.cont_tasks:
+                report.append((f"continuation/{L}/{t}", sum(r["task"] == f"continuation_{t}" for r in sets[L])))
+        if calib:
+            cpath = args.out.with_suffix(".calib.jsonl")
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            cpath.write_text("".join(json.dumps(r) + "\n" for r in calib))
+            report.append((f"calibration -> {cpath.name}", len(calib)))
+        args.longbench_tasks, args.ruler_tasks = [], []
     if args.longbench_tasks:
         files = longbench_files()
         for task in args.longbench_tasks:
@@ -372,7 +459,7 @@ def main():
     }
     args.out.with_suffix(".meta.json").write_text(json.dumps(meta, indent=2))
     for name, k in report:
-        flag = "" if k == args.per_task else f"  (only {k} in range)"
+        flag = "" if args.mode == "continuation" or k == args.per_task else f"  (only {k} in range)"
         print(f"{name:32} {k}{flag}")
     print(f"{len(out)} records -> {args.out}")
 

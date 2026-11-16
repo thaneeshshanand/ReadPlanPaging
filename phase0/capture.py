@@ -248,10 +248,24 @@ def load_prompts(path: Path, limit: int | None):
             if not line:
                 continue
             rec = json.loads(line)
-            if "id" not in rec or not ({"prompt", "messages"} & rec.keys()):
-                raise ValueError(f"each line of {path} needs 'id' and 'prompt' or 'messages'")
+            if "id" not in rec or not ({"prompt", "messages", "prompt_ids"} & rec.keys()):
+                raise ValueError(f"each line of {path} needs 'id' and 'prompt', 'messages' or 'prompt_ids'")
             prompts.append(rec)
     return prompts[:limit] if limit else prompts
+
+
+def vocab_sha(tok) -> str:
+    """Fingerprint of a tokenizer's vocabulary, to check token-id records match the model."""
+    if not hasattr(tok, "_vocab_sha"):
+        tok._vocab_sha = hashlib.sha256(json.dumps(sorted(tok.get_vocab().items())).encode()).hexdigest()[:16]
+    return tok._vocab_sha
+
+
+def bos_ids(tok) -> list[int]:
+    """Special tokens the tokenizer prepends by default (e.g. Llama's BOS; none for Qwen)."""
+    with_sp = tok("x")["input_ids"]
+    plain = tok("x", add_special_tokens=False)["input_ids"]
+    return with_sp[: len(with_sp) - len(plain)] if with_sp[len(with_sp) - len(plain):] == plain else []
 
 
 def encode(tok, rec, use_template: bool, max_context: int) -> tuple[list[int], bool]:
@@ -262,6 +276,11 @@ def encode(tok, rec, use_template: bool, max_context: int) -> tuple[list[int], b
     and code tasks) and an "assistant_prefix" that is appended after the generation
     prompt (RULER answer prefixes).
     """
+    if "prompt_ids" in rec:  # raw-text continuation records: token ids for this tokenizer
+        if rec.get("tokenizer_vocab_sha") not in (None, vocab_sha(tok)):
+            raise ValueError(f"{rec['id']}: record was built with a different tokenizer")
+        ids = bos_ids(tok) + list(rec["prompt_ids"])
+        return ids[-max_context:], len(ids) > max_context
     use_template = rec.get("chat_template", use_template) and tok.chat_template is not None
     body = rec.get("prompt")
     truncated = False

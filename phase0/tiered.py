@@ -8,6 +8,7 @@ read the cache. Results are written per prompt and variant; analyze_d.py summari
 Variants (docs/PHASE0.md, D):
 
     fp16            exact attention (the reference; same fp32 code path as the others)
+    fp8             every key and value cast to emulated fp8 e4m3, scale 1, saturating
     uniform8/4      every full block read from the 8-/4-bit copy
     hot_only        fresh oracle HOT set at fp16, every other block dropped
     fresh           (a) oracle plan recomputed every step from exact weights
@@ -16,6 +17,12 @@ Variants (docs/PHASE0.md, D):
                     scores (fp16 for HOT, 4-bit keys for WARM, 1-bit keys for COLD);
                     blocks it marks HOT that the plan did not are read at fp16
     twotier_R{R}    (d) as (c) with no COLD tier (eps_c = 0), so only WARM is scanned
+    coldkeys_R{R}   (e) as (c), but COLD blocks have their 4-bit keys read every step
+                    (values skipped), so promotion scores them like WARM blocks
+
+Key codecs (--key-codecs) set how key scales and offsets are shared, for uniform and
+tiered variants alike: per 16-token block (block), per 256-token group (group256), or
+static per layer/head/channel values from calibrate_keys.py (static, --key-calib).
 
 Simulation choices:
 - Plans are refreshed from the exact fp16 weights of the refresh step (an oracle
@@ -39,6 +46,7 @@ Quality is measured two ways per variant:
   against exact attention computed from the same query and cache (a local error, on
   the variant's own hidden state);
 - optionally free-running greedy (--free-run) for task scores.
+--reference record uses a record's reference_ids (continuation sets from benchmarks.py).
 
 Output: <out>/meta.json, <out>/done.jsonl, <out>/<prompt_id>/{prompt.json,<variant>.npz}.
 Per-step arrays in <variant>.npz (T teacher-forced steps, L layers):
@@ -83,22 +91,28 @@ TAIL_THRESHOLDS = (0.02, 0.05, 0.10)
 # --------------------------------------------------------------------------- variants
 
 
+TIERED_KINDS = ("hot_only", "fresh", "stale", "promote", "twotier", "coldkeys")
+KEY_CODECS = ("block", "group256", "static")
+
+
 @dataclass(frozen=True)
 class Variant:
-    kind: str  # fp16 | uniform | hot_only | fresh | stale | promote | twotier
+    kind: str  # fp16 | fp8 | uniform | hot_only | fresh | stale | promote | twotier | coldkeys
     bits: int = 4  # coarse bits (WARM, or everything for uniform)
     R: int = 1
     eps_w: float = 0.0
     eps_c: float = 0.0
     scan_bits: int = 1
     scan_codec: str = "minmax"
+    kcodec: str = "block"  # key scale/offset sharing: per 16-token block, per 256-token group, static
 
     @property
     def name(self) -> str:
-        if self.kind == "fp16":
-            return "fp16"
+        if self.kind in ("fp16", "fp8"):
+            return self.kind
+        ksuf = "" if self.kcodec == "block" else f"_k{self.kcodec}"
         if self.kind == "uniform":
-            return f"uniform{self.bits}"
+            return f"uniform{self.bits}{ksuf}"
         tag = f"w{self.eps_w:g}"
         if self.kind == "hot_only":
             return f"hot_only_{tag}"
@@ -106,34 +120,31 @@ class Variant:
             tag += f"_c{self.eps_c:g}"
         r = "" if self.kind == "fresh" else f"_R{self.R}"
         scan = "_scan-meanabs" if self.kind == "promote" and self.scan_codec != "minmax" else ""
-        return f"{self.kind}{r}_{tag}{scan}"
-
-    @property
-    def needs_plan(self) -> bool:
-        return self.kind in ("hot_only", "fresh", "stale", "promote", "twotier")
+        return f"{self.kind}{r}_{tag}{scan}{ksuf}"
 
     @property
     def promotes(self) -> bool:
-        return self.kind in ("promote", "twotier")
+        return self.kind in ("promote", "twotier", "coldkeys")
 
 
-def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",)) -> list[Variant]:
+def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",), kcodecs=("block",)) -> list[Variant]:
     out = {}
     for spec in names:
-        if spec == "fp16":
-            vs = [Variant("fp16")]
+        if spec in ("fp16", "fp8"):
+            vs = [Variant(spec)]
         elif spec.startswith("uniform"):
-            vs = [Variant("uniform", bits=int(spec[len("uniform"):]))]
+            vs = [Variant("uniform", bits=int(spec[len("uniform"):]), kcodec=kc) for kc in kcodecs]
         else:
             kind, _, r = spec.partition("_R")
             R = int(r) if r else 1
-            if kind not in ("hot_only", "fresh", "stale", "promote", "twotier"):
+            if kind not in TIERED_KINDS:
                 raise ValueError(f"unknown variant {spec}")
             vs = []
             for w in eps_ws:
                 for c in ([0.0] if kind in ("hot_only", "twotier") else eps_cs):
                     for sc in (scan_codecs if kind == "promote" else ["minmax"]):
-                        vs.append(Variant(kind, bits=warm_bits, R=R, eps_w=w, eps_c=c, scan_codec=sc))
+                        for kc in (["block"] if kind == "hot_only" else kcodecs):
+                            vs.append(Variant(kind, bits=warm_bits, R=R, eps_w=w, eps_c=c, scan_codec=sc, kcodec=kc))
         for v in vs:
             out[v.name] = v
     return list(out.values())
@@ -163,18 +174,60 @@ def quantise(x: torch.Tensor, bits: int, dim: int, codec: str = "minmax"):
     return code.to(torch.uint8), scale.half(), lo.half()
 
 
+def quantise_fixed(x: torch.Tensor, bits: int, lo: torch.Tensor, scale: torch.Tensor, codec: str = "minmax"):
+    """Quantise with given (broadcastable) offset and scale, e.g. static calibrated values.
+    Values outside the calibrated range saturate."""
+    lo, scale = lo.half().float(), scale.half().float()
+    if codec == "meanabs":
+        code = (x > lo + scale / 2).to(torch.uint8)
+    else:
+        levels = 2**bits - 1
+        safe = torch.where(scale > 0, scale, torch.ones_like(scale))
+        code = ((x - lo) / safe).round().clamp_(0, levels).to(torch.uint8)
+    shape = x.shape[:-2] + (1, x.shape[-1])
+    return code, scale.expand(shape).half().contiguous(), lo.expand(shape).half().contiguous()
+
+
 def dequantise(code, scale, lo):
     return code.float() * scale.float() + lo.float()
 
 
-class CoarseStore:
-    """Quantised copies of a layer's full blocks, extended as blocks fill up."""
+def fp8_e4m3(x: torch.Tensor) -> torch.Tensor:
+    """Emulated cast to fp8 e4m3 (fn) with scale 1, saturating at +-448, nearest rounding.
+    Works on any device; matches torch.float8_e4m3fn for in-range values."""
+    a = x.abs().clamp(max=448.0)
+    e = torch.floor(torch.log2(a.clamp(min=2.0**-9))).clamp(min=-6)
+    step = torch.exp2(e - 3)
+    return torch.sign(x) * (a / step).round() * step
 
-    def __init__(self, bits: int, values: bool, codec: str = "minmax"):
-        self.bits, self.values, self.codec = bits, values, codec
+
+GROUP_BLOCKS = 16  # 256-token key groups
+
+
+class CoarseStore:
+    """Quantised copies of a layer's full blocks, extended as blocks fill up.
+
+    Key codecs (values are always per token):
+      block     scale/offset per channel per 16-token block
+      group256  scale/offset per channel shared by 16 consecutive blocks; blocks of a group
+                that is not yet complete use per-block values until it completes
+      static    per-layer, per-head, per-channel values calibrated offline (calib)
+    """
+
+    def __init__(self, bits: int, values: bool, codec: str = "minmax", kcodec: str = "block", calib: dict | None = None):
+        self.bits, self.values, self.codec, self.kcodec = bits, values, codec, kcodec
         self.k = None  # (code, scale, lo) with code [H, nbf, 16, D]
         self.v = None
         self.nbf = 0
+        self.groups_done = 0
+        if kcodec == "static":
+            if calib is None:
+                raise ValueError("static key codec needs calibration (--key-calib)")
+            if codec == "meanabs":
+                lo, sc = calib["mean"] - calib["mad"], 2 * calib["mad"]
+            else:
+                lo, sc = calib["min"], (calib["max"] - calib["min"]) / (2**bits - 1)
+            self.static = (lo[:, None, None, :], sc[:, None, None, :])  # [H, 1, 1, D]
 
     def update(self, K: torch.Tensor, V: torch.Tensor):
         nbf = K.shape[1] // BLOCK
@@ -183,8 +236,22 @@ class CoarseStore:
         h, _, d = K.shape
         sl = slice(self.nbf * BLOCK, nbf * BLOCK)
         kb = K[:, sl].float().view(h, nbf - self.nbf, BLOCK, d)
-        new_k = quantise(kb, self.bits, dim=2, codec=self.codec)  # per channel within the block
+        if self.kcodec == "static":
+            lo, sc = (t.to(kb.device) for t in self.static)
+            new_k = quantise_fixed(kb, self.bits, lo, sc, self.codec)
+        else:
+            new_k = quantise(kb, self.bits, dim=2, codec=self.codec)  # per channel within the block
         self.k = new_k if self.k is None else tuple(torch.cat([a, b], 1) for a, b in zip(self.k, new_k))
+        if self.kcodec == "group256":
+            gb = GROUP_BLOCKS
+            while (self.groups_done + 1) * gb <= nbf:
+                g0, g1 = self.groups_done * gb, (self.groups_done + 1) * gb
+                kg = K[:, g0 * BLOCK : g1 * BLOCK].float().view(h, gb, BLOCK, d)
+                c, sc, lo = quantise(kg, self.bits, dim=(1, 2), codec=self.codec)
+                self.k[0][:, g0:g1] = c
+                self.k[1][:, g0:g1] = sc.expand(h, gb, 1, d)
+                self.k[2][:, g0:g1] = lo.expand(h, gb, 1, d)
+                self.groups_done += 1
         if self.values:
             vb = V[:, sl].float().view(h, nbf - self.nbf, BLOCK, d)
             new_v = quantise(vb, self.bits, dim=3)  # per token
@@ -223,6 +290,12 @@ class TieredState:
         self.variant: Variant | None = None
         self.step = 0
         self.layers: dict[int, dict] = {}
+        self.calib: dict | None = None  # layer -> {min, max, mean, mad} [H, D]
+
+    def layer_calib(self, layer: int, device):
+        if self.calib is None:
+            return None
+        return {k: t.to(device) for k, t in self.calib[layer].items()}
 
     def reset(self, variant: Variant, device):
         self.variant = variant
@@ -282,8 +355,13 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
     if v.kind == "fp16":
         o = o_ref
         counts[0] = h * nb
+    elif v.kind == "fp8":
+        o = attend(fp8_e4m3(Kf), fp8_e4m3(Vf))
+        counts[1] = h * nb
     elif v.kind == "uniform":
-        store = st.setdefault("coarse", CoarseStore(v.bits, values=True))
+        if "coarse" not in st:
+            st["coarse"] = CoarseStore(v.bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device))
+        store = st["coarse"]
         store.update(K, V)
         o = attend(store.full("k", K), store.full("v", V))
         counts[0], counts[1] = h * (nb - nbf), h * nbf
@@ -305,16 +383,22 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
         tok = lambda t: t.repeat_interleave(BLOCK, dim=1)[:, :n]  # block tiers -> token tiers
         warm_store = None
         if v.kind != "hot_only":
-            warm_store = st.setdefault("coarse", CoarseStore(v.bits, values=True))
+            if "coarse" not in st:
+                st["coarse"] = CoarseStore(v.bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device))
+            warm_store = st["coarse"]
             warm_store.update(K, V)
         if v.promotes:
             Kw = warm_store.full("k", K)
             s_c = torch.where(tok(planned == HOT)[:, None, :], s16, torch.bmm(qv, Kw.transpose(1, 2)) * scale)
             if v.kind == "promote":
-                scan = st.setdefault("scan", CoarseStore(v.scan_bits, values=False, codec=v.scan_codec))
+                if "scan" not in st:
+                    st["scan"] = CoarseStore(v.scan_bits, values=False, codec=v.scan_codec, kcodec=v.kcodec,
+                                             calib=STATE.layer_calib(layer, K.device))
+                scan = st["scan"]
                 scan.update(K, V)
                 s_cold = torch.bmm(qv, scan.full("k", K).transpose(1, 2)) * scale
                 s_c = torch.where(tok(planned == COLD)[:, None, :], s_cold, s_c)
+            # twotier has no COLD; coldkeys (e) scores COLD blocks with their 4-bit keys like WARM
             hot_c = rule_b(torch.softmax(s_c, -1), nb, v.eps_w, v.eps_c) == HOT
             promoted = hot_c & (planned != HOT)
             counts[3] = (promoted & (planned == WARM)).sum()
@@ -425,8 +509,11 @@ def main():
     p.add_argument("--warm-bits", type=int, default=4)
     p.add_argument("--scan-codec", nargs="+", default=["minmax"], choices=["minmax", "meanabs"],
                    help="1-bit COLD key plane codec(s) for promote variants")
-    p.add_argument("--reference", default="greedy", choices=["greedy", "answer"],
-                   help="teacher-forced reference: the fp16 greedy output, or the record's first answer")
+    p.add_argument("--key-codecs", nargs="+", default=["block"], choices=list(KEY_CODECS))
+    p.add_argument("--key-calib", type=Path, default=None, help="calibrate_keys.py output, for --key-codecs static")
+    p.add_argument("--shard", default=None, help="i/n: run prompts i, i+n, i+2n, ... (Slurm arrays)")
+    p.add_argument("--reference", default="greedy", choices=["greedy", "answer", "record"],
+                   help="teacher-forced reference: fp16 greedy output, the record's first answer, or its reference_ids")
     p.add_argument("--free-run", action="store_true", help="also decode freely under every variant (task scores)")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--device", default="auto")
@@ -440,7 +527,7 @@ def main():
     torch.manual_seed(args.seed)
     device = pick_device(args.device)
     args.out.mkdir(parents=True, exist_ok=True)
-    variants = build_variants(args.variants, args.eps_w, args.eps_c, args.warm_bits, args.scan_codec)
+    variants = build_variants(args.variants, args.eps_w, args.eps_c, args.warm_bits, args.scan_codec, args.key_codecs)
     if variants[0].kind != "fp16":
         variants = [Variant("fp16")] + [v for v in variants if v.kind != "fp16"]
 
@@ -450,6 +537,15 @@ def main():
     ).to(device).eval()
     cfg = model.config
     STATE.L = cfg.num_hidden_layers
+    calib_meta = None
+    if any(v.kcodec == "static" for v in variants):
+        if args.key_calib is None:
+            sys.exit("--key-codecs static needs --key-calib")
+        blob = torch.load(args.key_calib, map_location="cpu")
+        if blob["model"] != args.model:
+            sys.exit(f"calibration is for {blob['model']}, not {args.model}")
+        STATE.calib = blob["layers"]
+        calib_meta = {k: v for k, v in blob.items() if k != "layers"} | {"path": str(args.key_calib)}
     use_template = args.chat_template == "on" or (args.chat_template == "auto" and tok.chat_template is not None)
     eos = set()
     for e in (cfg.eos_token_id, getattr(model.generation_config, "eos_token_id", None)):
@@ -475,6 +571,7 @@ def main():
         "block_size": BLOCK,
         "eos_ids": sorted(eos),
         "rope_check": rope,
+        "key_calibration": calib_meta,
         "code": code_version() | {"tiered_script": str(Path(__file__).resolve())},
         "versions": {"torch": torch.__version__, "transformers": transformers.__version__},
     }
@@ -486,6 +583,9 @@ def main():
         done = {json.loads(l)["id"] for l in done_path.read_text().splitlines() if l.strip()}
 
     prompts = load_prompts(args.prompts, args.limit)
+    if args.shard:
+        i, n = (int(x) for x in args.shard.split("/"))
+        prompts = prompts[i::n]
     print(f"device={device} variants={[v.name for v in variants]} prompts={len(prompts)}")
     for i, rec in enumerate(prompts):
         pid = str(rec["id"])
@@ -510,8 +610,13 @@ def main():
         t_prefill = time.perf_counter() - t0
 
         STATE.variant = variants[0]  # fp16
-        greedy = decode(model, cache, n0, first, device, max_new=max_new, eos_ids=eos)
-        if args.reference == "answer":
+        need_greedy = args.reference == "greedy" or args.free_run
+        greedy = decode(model, cache, n0, first, device, max_new=max_new, eos_ids=eos) if need_greedy else []
+        if args.reference == "record":
+            if "reference_ids" not in rec:
+                sys.exit(f"{pid}: --reference record needs reference_ids")
+            teacher = list(rec["reference_ids"])[:max_new]
+        elif args.reference == "answer":
             answer = (rec.get("answers") or [None])[0]
             if answer is None:
                 sys.exit(f"{pid}: --reference answer needs an 'answers' field")
@@ -522,7 +627,7 @@ def main():
         for v in variants:
             t0 = time.perf_counter()
             STATE.variant = v
-            arr = decode(model, cache, n0, first, device, teacher=teacher)
+            arr = decode(model, cache, n0, teacher[0], device, teacher=teacher)
             if args.free_run:
                 arr["free_ids"] = np.asarray(
                     greedy if v.kind == "fp16" else decode(model, cache, n0, first, device, max_new=max_new, eos_ids=eos), np.int64)
