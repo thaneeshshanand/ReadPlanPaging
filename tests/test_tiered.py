@@ -1,5 +1,6 @@
 """Tests for the part D simulator (phase0/tiered.py) and its read accounting (analyze_d.py)."""
 
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -224,23 +225,21 @@ def _row(name, kind, ppl, rho_meta, bits=4, kc="block", hot=16):
             "ppl_increase": ppl, "ppl_increase_ci_hi": ppl + 0.004, "rho_meta": rho_meta}
 
 
-def test_decision_rule_rebased_ladder():
+def test_decision_rule_cross_codec_bar():
     base = [_row("fp16", "fp16", 0.0, 1.0, bits=16, kc=""), _row("fp8", "fp8", 0.0, 0.5, bits=8, kc=""),
-            _row("u8", "uniform", 0.001, 0.57, 8), _row("u4", "uniform", 0.008, 0.32, 4),
-            _row("u3", "uniform", 0.03, 0.26, 3), _row("u2", "uniform", 0.2, 0.2, 2)]
-    # b* = 4 (lowest passing), WARM = 3; budget 0.75 x 0.32 = 0.24
-    incomplete = analyze_d.decide(base)
-    assert incomplete["per_codec"]["block"]["b_star"] == 4 and incomplete["per_codec"]["block"]["warm_bits"] == 3
-    assert incomplete["verdict"].startswith("incomplete")
-    go = analyze_d.decide(base + [_row("e", "coldkeys", 0.009, 0.23, bits=3, hot=4)])
-    assert go["verdict"] == "go" and go["per_codec"]["block"]["passing"][0]["ci_hi_above_limit"]
-    too_costly = analyze_d.decide(base + [_row("e", "coldkeys", 0.005, 0.25, bits=3, hot=4)])
-    assert too_costly["verdict"] == "no-go: no ladder below b* passes"
-    wrong_ladder = analyze_d.decide(base + [_row("c", "promote", 0.0, 0.1, bits=4, hot=16)])  # fp16/4-bit ladder ignored
-    assert wrong_ladder["verdict"].startswith("incomplete")
-    lowest = [r if r["variant"] != "u2" else _row("u2", "uniform", 0.009, 0.2, 2) for r in base]
-    assert analyze_d.decide(lowest)["verdict"].startswith("no-go: b* is the lowest")
-    assert "fp8" not in str(analyze_d.decide(base)["per_codec"])  # fp8 never becomes b*
+            _row("u8", "uniform", 0.0, 0.57, 8), _row("u4", "uniform", 0.002, 0.32, 4),
+            _row("u4g", "uniform", 0.006, 0.264, 4, kc="group256"), _row("u3g", "uniform", 0.03, 0.2, 3, kc="group256"),
+            _row("u8s", "uniform", 0.0, 0.51, 8, kc="static"), _row("u4s", "uniform", 0.02, 0.26, 4, kc="static")]
+    d = analyze_d.decide(base)
+    assert d["bar"]["variant"] == "u4g" and d["rho_meta_budget"] == pytest.approx(0.198)  # cheapest passing, across codecs
+    assert d["verdict"].startswith("incomplete") and d["per_codec"]["static"]["b_star"] == 8
+    assert "fp8" not in json.dumps(d["bar"])  # fp8 (0.5, passing) is excluded
+    go = analyze_d.decide(base + [_row("e", "coldkeys", 0.009, 0.19, bits=2, kc="group256", hot=4)])
+    assert go["verdict"] == "go" and go["passing"][0]["variant"] == "e"
+    over = analyze_d.decide(base + [_row("c", "promote", 0.005, 0.22, bits=3, kc="group256", hot=4)])
+    assert over["verdict"] == "no-go so far: tiered variants within 1% read more than the budget"
+    bad = analyze_d.decide(base + [_row("c", "promote", 0.05, 0.15, bits=2, kc="group256", hot=4)])
+    assert bad["verdict"] == "no-go so far: every tiered variant fails on quality"
 
 
 def test_rho_with_hot_at_bstar():

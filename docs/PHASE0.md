@@ -92,13 +92,11 @@ These count code bits only. Decisions use rho with quantiser metadata (`rho_meta
 
 "Within 1%" means the pooled teacher-forced perplexity increase over fp16 is at most 1% (point estimate), paired on the same prompts. Report its 95% bootstrap interval over prompts and flag any deciding row whose upper bound is above 1%. Bytes always include quantiser metadata (`rho_meta`).
 
-For each key codec (per block, 256-token groups, static):
-
-1. **b\*** is the lowest uniform width (fp16 = 16, then 8, 4, 3, 2) that stays within 1%. fp8 is emulation only and is not a candidate.
-2. **Ladder:** HOT = b\*, WARM = the next width down, which fails as a uniform cache, COLD as now.
-3. **Go** if a tiered variant (c, d or e) on that ladder stays within 1% and reads at least 25% fewer bytes than uniform b\* with the same codec.
-
-**No-go** if no ladder below b\* passes, including when b\* is the lowest width tested. Then write up the measurement and stop. Flag a non-monotone result (a wider uniform cache failing where a narrower one passes).
+- **Bar:** the cheapest uniform cache that stays within 1%, across all key codecs and widths (fp16, uniform 8/4/3/2-bit), bytes including metadata. fp8 is emulation only and is not a candidate. On the 1.5B pre-screen this is group256 4-bit (rho_meta 0.264), so the budget is rho_meta <= 0.198.
+- **Ladders:** HOT at the bar's width, WARM at a lower width (4/3 and 4/2 with group256 keys), COLD as now. Per-codec b\* (lowest uniform width within 1%) is reported to guide ladder choice.
+- **Go** if a tiered variant (c, d or e) stays within 1% and reads at least 25% fewer bytes than the bar.
+- **No-go** otherwise. Flag a non-monotone uniform result.
+- **If every tiered variant fails on quality:** run variant a (fresh plan) on the 4/2 ladder to separate "ladder too coarse" from "stale plan", then try per-block keys on a 4/3 ladder as the fallback codec.
 
 Variants a and b do not qualify: a needs exact weights to plan, and b has no check against a stale plan. Report R, the effective HOT fraction (promoted blocks counted as HOT) and the stale-COLD tail beside every deciding row: the fraction of query heads with more than 2%, 5% and 10% of their attention mass in COLD blocks, before and after promotion (`frac_qheads_cold_mass_gt_*`), plus the stability-analysis tail from part C. `analyze_d.py` applies this rule and writes `decision.json`.
 

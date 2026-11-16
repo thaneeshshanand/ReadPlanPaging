@@ -44,11 +44,10 @@ Read accounting, as fractions of an fp16 block (keys and values):
 where PW and PC are blocks promoted from WARM and COLD. The COLD k(c)/R term charges the
 periodic refresh as a coarse key scan (the simulation refreshes from exact weights).
 
-Decision (docs/PHASE0.md), written to decision.json: per key codec, b* is the lowest
-uniform width within 1% perplexity; the ladder is HOT = b*, WARM = the next tested width
-below b*, COLD as before. Go if a variant c, d or e on that ladder stays within 1% and its
-rho_meta is at most 0.75 x that of uniform b*. No-go if no ladder below b* passes. Point
-estimates decide; rows whose 95% CI upper bound crosses 1% are flagged. ppl_increase is
+Decision (docs/PHASE0.md), written to decision.json: the bar is the cheapest uniform cache
+(fp16 or uniform 8/4/3/2-bit, any key codec, bytes with metadata) within 1% perplexity.
+Go if a variant c, d or e stays within 1% and its rho_meta is at most 0.75 x the bar.
+Per-codec b* is reported for choosing ladders. Point estimates decide; rows whose 95% CI upper bound crosses 1% are flagged. ppl_increase is
 paired: over the prompts a variant ran on, against fp16 on the same prompts. fp8 is an
 emulation and is labelled "emulation only"; it is not a candidate for b*.
 """
@@ -133,57 +132,51 @@ WIDTHS = (16, 8, 4, 3, 2)  # uniform widths; 16 is fp16
 def decide(rows: list[dict]) -> dict:
     """Go/no-go rule of docs/PHASE0.md on summary rows (paired point estimates).
 
-    Per key codec: b* is the lowest uniform width within 1% (fp16 counts as 16 and always
-    qualifies); the ladder is HOT = b*, WARM = the next tested width below b*. Go if a
-    variant c/d/e on that ladder and codec stays within 1% and reads at least 25% fewer
-    bytes (rho_meta) than uniform b* with the same codec. fp8 is emulation only and not
-    a candidate for b*.
+    Bar: the cheapest uniform cache (fp16 or uniform 8/4/3/2-bit, any key codec, bytes with
+    metadata) that stays within 1%. Go if a variant c/d/e stays within 1% and reads at least
+    25% fewer bytes (rho_meta) than that bar. fp8 is emulation only and is not a candidate.
+    Per-codec b* (lowest uniform width within 1%) is reported for choosing ladders.
     """
     ok = lambda r: r["ppl_increase"] <= PPL_LIMIT
     fp16 = next((r for r in rows if r["kind"] == "fp16"), None)
-    codecs = sorted({r["kcodec"] for r in rows if r["kind"] == "uniform"})
-    per_codec, any_ladder, missing, passing_all = {}, False, [], []
-    for kc in codecs:
+    uniform = [r for r in rows if r["kind"] == "uniform"] + ([fp16] if fp16 else [])
+    passing = [r for r in uniform if ok(r)]
+    bar = min(passing, key=lambda r: r["rho_meta"]) if passing else None
+    budget = (1 - MIN_SAVING) * bar["rho_meta"] if bar else None
+    tiered = [r for r in rows if r["kind"] in TIERED_GO_KINDS]
+    fmt = lambda r: {"variant": r["variant"], "hot_bits": r.get("hot_bits", 16), "warm_bits": r["bits"],
+                     "kcodec": r["kcodec"], "ppl_increase": r["ppl_increase"], "ci_hi": r["ppl_increase_ci_hi"],
+                     "rho_meta": r["rho_meta"], "within_limit": ok(r), "under_budget": budget is not None and r["rho_meta"] <= budget}
+    good = [r for r in tiered if ok(r) and budget is not None and r["rho_meta"] <= budget]
+    per_codec = {}
+    for kc in sorted({r["kcodec"] for r in rows if r["kind"] == "uniform"}):
         uni = {r["bits"]: r for r in rows if r["kind"] == "uniform" and r["kcodec"] == kc}
         if fp16:
             uni[16] = fp16
         tested = [b for b in WIDTHS if b in uni]
-        passing = [b for b in tested if ok(uni[b])]
-        bstar = min(passing) if passing else None
-        below = [b for b in tested if bstar and b < bstar]
-        warm = max(below) if below else None
-        non_monotone = [b for b in tested if bstar and b > bstar and not ok(uni[b])]
-        entry = {"b_star": bstar, "warm_bits": warm, "uniform_b_star_rho_meta": uni[bstar]["rho_meta"] if bstar else None,
-                 "uniform_widths_within_limit": passing, "non_monotone_widths": non_monotone}
-        if bstar and warm:
-            any_ladder = True
-            budget = (1 - MIN_SAVING) * uni[bstar]["rho_meta"]
-            ladder = [r for r in rows if r["kind"] in TIERED_GO_KINDS and r["kcodec"] == kc
-                      and r.get("hot_bits", 16) == bstar and r["bits"] == warm]
-            good = [r for r in ladder if ok(r) and r["rho_meta"] <= budget]
-            entry.update(rho_meta_budget=budget, ladder_variants_run=[r["variant"] for r in ladder],
-                         passing=[{"variant": r["variant"], "rho_meta": r["rho_meta"], "ppl_increase": r["ppl_increase"],
-                                   "ci_hi_above_limit": r["ppl_increase_ci_hi"] > PPL_LIMIT} for r in good])
-            if not ladder:
-                missing.append(kc)
-            passing_all += good
-        per_codec[kc] = entry
-    if not codecs:
+        bstar = min((b for b in tested if ok(uni[b])), default=None)
+        per_codec[kc] = {"b_star": bstar, "uniform_b_star_rho_meta": uni[bstar]["rho_meta"] if bstar else None,
+                         "non_monotone_widths": [b for b in tested if bstar and b > bstar and not ok(uni[b])]}
+    if bar is None:
         verdict = "incomplete: no uniform runs"
-    elif passing_all:
+    elif good:
         verdict = "go"
-    elif not any_ladder:
-        verdict = "no-go: b* is the lowest tested width for every key codec, so no ladder exists below it"
-    elif missing:
-        verdict = f"incomplete: ladder variants not run for key codec(s) {missing}"
+    elif not tiered:
+        verdict = "incomplete: no tiered variant (c, d, e) run"
+    elif not any(ok(r) for r in tiered):
+        verdict = "no-go so far: every tiered variant fails on quality"
     else:
-        verdict = "no-go: no ladder below b* passes"
+        verdict = "no-go so far: tiered variants within 1% read more than the budget"
     return {
         "verdict": verdict,
+        "bar": bar and {"variant": bar["variant"], "rho_meta": bar["rho_meta"], "ppl_increase": bar["ppl_increase"]},
+        "rho_meta_budget": budget,
+        "tiered": [fmt(r) for r in tiered],
+        "passing": [fmt(r) for r in good],
         "per_codec": per_codec,
-        "rule": f"per key codec, b* = lowest uniform width (16/8/4/3/2) with ppl increase <= {PPL_LIMIT:.0%}; ladder HOT=b*, "
-                f"WARM=next tested width below b*; go if a c/d/e variant on the ladder has ppl increase <= {PPL_LIMIT:.0%} "
-                f"and rho_meta <= {1 - MIN_SAVING:.2f} x uniform b*; fp8 is emulation only and excluded",
+        "rule": f"bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit, any key codec) with ppl increase <= {PPL_LIMIT:.0%}, "
+                f"bytes with metadata; go if a c/d/e variant has ppl increase <= {PPL_LIMIT:.0%} and rho_meta <= "
+                f"{1 - MIN_SAVING:.2f} x bar; fp8 is emulation only and excluded",
     }
 
 
@@ -364,10 +357,13 @@ def main():
               f"{r['promotion_precision'] if r['promotion_precision'] == '' else format(r['promotion_precision'], '.2f'):>5} "
               f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f}")
     print(f"\nDecision: {decision['verdict']}")
+    if decision["bar"]:
+        print(f"  bar: {decision['bar']['variant']} rho_meta={decision['bar']['rho_meta']:.3f}; budget rho_meta <= {decision['rho_meta_budget']:.3f}")
+    for t in decision["tiered"]:
+        print(f"  {t['variant']:48} dPPL={100 * t['ppl_increase']:6.2f}% (CI hi {100 * t['ci_hi']:5.2f}%) rho_meta={t['rho_meta']:.3f}"
+              f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}")
     for kc, e in decision["per_codec"].items():
-        print(f"  {kc:9} b*={e['b_star']} warm={e['warm_bits']} uniform b* rho_meta={e['uniform_b_star_rho_meta']}"
-              + (f" budget<={e['rho_meta_budget']:.3f} ladder run={len(e['ladder_variants_run'])} passing={[x['variant'] for x in e['passing']]}"
-                 if e.get("rho_meta_budget") else "")
+        print(f"  b*[{kc}]={e['b_star']} (uniform rho_meta {e['uniform_b_star_rho_meta']})"
               + (f" NON-MONOTONE {e['non_monotone_widths']}" if e["non_monotone_widths"] else ""))
 
 
