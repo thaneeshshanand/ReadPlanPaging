@@ -51,9 +51,16 @@ Compute a plan at step t and apply it unchanged at steps t+1 to t+R, for R in {1
 
 Prefill normally at fp16. Then decode token by token with a patched attention forward that, for the new token, uses fp16 keys and values for HOT blocks, quantised keys and values for WARM blocks, and masks COLD blocks.
 
-- **Quantisers:** 8-bit and 4-bit uniform, per channel for keys and per token for values. Use nearest rounding.
-- **Baselines:** fp16; uniform 8-bit everywhere; uniform 4-bit everywhere; HOT blocks only with the rest dropped.
+- **Quantisers:** 8-bit and 4-bit uniform, per channel for keys and per token for values. Use nearest rounding. Keys are quantised per channel within each 16-token block. The 1-bit key plane uses the same quantiser with two levels. Also report a mean-absolute-deviation 1-bit plane (sign around the per-channel mean), because min-max with two levels loses most of each key.
+- **Variants:**
+  - **a. Fresh plan** every step, from the exact weights of that step. An oracle: the quality ceiling for the rule.
+  - **b. Stale plan**, R in {4, 8}, no check. Shows the damage plan reuse does on its own.
+  - **c. Stale plan + same-step promotion.** Apply the tiering rule to this step's coarse scores: fp16 for HOT blocks, 4-bit keys for WARM blocks, the 1-bit key plane for COLD blocks. Any block it marks HOT that was not read at fp16 gets an fp16 read in a second pass.
+  - **d. Two tiers** (no COLD, `eps_c = 0`) with the same same-step promotion.
+  - Plans in b-d are refreshed every R steps from that step's exact weights. Blocks written since the refresh are HOT.
+- **Baselines:** fp16; uniform 8-bit everywhere; uniform 4-bit everywhere; HOT blocks only with the rest dropped. The newest, partial block is fp16 in every variant.
 - **Metrics:** relative L2 error of each layer's attention output; perplexity of a reference continuation under teacher forcing; token agreement with the fp16 greedy output; the benchmark's task score where one exists.
+- **For c and d, also:** fix-up rate per step (blocks given a second-pass fp16 read); recall of the same-step scan on stale-COLD events (blocks HOT under the fresh plan but COLD under the stale one; for c this is the 1-bit scan) and its precision; rho including the scan and fix-up reads.
 
 ### E. Read fraction
 
@@ -61,20 +68,29 @@ Prefill normally at fp16. Then decode token by token with a patched attention fo
 
 where the fractions are of blocks, `c` is the coarse-plane bit width, and the last term is the periodic scan of coarse keys in COLD blocks. `rho = 1` means reading everything at fp16.
 
+For variants c and d, add the same-step reads, with PW and PC the fractions of blocks promoted from WARM and from COLD:
+
+- c: `rho = HOT + (WARM - PW) * (c/16) + PW * (0.5 * c/16 + 1) + COLD * 0.5 * (1/16) + PC + COLD * 0.5 * (c/16) / R`
+- d: `rho = HOT + (WARM - PW) * (c/16) + PW * (0.5 * c/16 + 1)`
+
+These count code bits only. Also report rho with quantiser metadata: an fp16 scale and offset per channel per block for keys and per token for values. With 16-token blocks and head dim 128, that raises a 4-bit block read from 0.25 to 0.32 and a 1-bit key scan from 0.03 to 0.09 of an fp16 block. If a configuration passes only on the code-bits count, say so.
+
 ## Outputs
 
-- A table of rho against perplexity increase for each configuration.
+- A table of rho against perplexity increase for each configuration, including variants a-d and the baselines.
 - A per-layer, per-head heatmap of HOT, WARM and COLD fractions.
 - Stability curves against R.
 
 ## Decision
 
-**Go** if at least one configuration reaches all of:
+**Go** if at least one configuration of variant c or d reaches all of:
 
-- rho at or below 0.30;
+- rho at or below 0.30, including the same-step scan and fix-up reads;
 - perplexity increase at or below 1%;
 - R of 4 or more;
-- HOT blocks at or below 20%.
+- HOT blocks at or below 20%, counting promoted blocks as HOT.
+
+Variants a and b do not qualify: a needs exact weights to plan, and b has no check against a stale plan. Report the stale-COLD tail alongside every decision row: the fraction of query heads with more than 2%, 5% and 10% of their attention mass in COLD blocks, before and after promotion (`frac_qheads_cold_mass_gt_*`), plus the stability-analysis tail from part C.
 
 Otherwise, write up the measurement and stop.
 

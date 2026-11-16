@@ -255,17 +255,32 @@ def load_prompts(path: Path, limit: int | None):
 
 
 def encode(tok, rec, use_template: bool, max_context: int) -> tuple[list[int], bool]:
-    """Token ids for one prompt, middle-truncated to max_context (LongBench convention)."""
+    """Token ids for one prompt.
+
+    The prompt body is middle-truncated to max_context tokens before templating
+    (LongBench convention). A record may set "chat_template": false (LongBench few-shot
+    and code tasks) and an "assistant_prefix" that is appended after the generation
+    prompt (RULER answer prefixes).
+    """
+    use_template = rec.get("chat_template", use_template) and tok.chat_template is not None
+    body = rec.get("prompt")
+    truncated = False
+    if body is not None:
+        body_ids = tok(body, add_special_tokens=False)["input_ids"]
+        if len(body_ids) > max_context:
+            truncated = True
+            half = max_context // 2
+            body = tok.decode(body_ids[:half]) + tok.decode(body_ids[len(body_ids) - (max_context - half):])
     if use_template:
-        messages = rec.get("messages") or [{"role": "user", "content": rec["prompt"]}]
+        messages = [{"role": "user", "content": body}] if body is not None else rec["messages"]
         ids = tok.apply_chat_template(messages, add_generation_prompt=True, tokenize=True)
+        if isinstance(ids, dict) or hasattr(ids, "input_ids"):
+            ids = ids["input_ids"]
     else:
-        ids = tok(rec["prompt"], add_special_tokens=True)["input_ids"]
-    truncated = len(ids) > max_context
-    if truncated:
-        half = max_context // 2
-        ids = ids[:half] + ids[len(ids) - (max_context - half):]
-    return ids, truncated
+        ids = tok(body, add_special_tokens=True)["input_ids"]
+    if rec.get("assistant_prefix"):
+        ids = ids + tok(rec["assistant_prefix"], add_special_tokens=False)["input_ids"]
+    return list(ids), truncated
 
 
 def captured_steps(max_new: int, every: int, window: int) -> list[int]:
