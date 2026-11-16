@@ -1,6 +1,10 @@
 #!/bin/bash
 # Phase 0 part D on the cluster: tiered-read simulation with the reduced variant list
 #   fp16, fp8, uniform4, a (fresh), c (promote_R4), d (twotier_R4), e (coldkeys_R4)
+# on a HOT/WARM ladder (HOT_BITS/WARM_BITS) with KEY_CODECS key scales. fp8 here is the
+# emulation; reproduce it with vLLM's real fp8 KV cache before quoting it.
+# A second ladder is a second submission into the same OUT (variants are added to
+# finished prompts), e.g. WARM_BITS=2 sbatch --array=0-9 slurm/phase0_tiered.sbatch
 #
 # One array task per prompt shard. Submit from the repo root, e.g.:
 #   sbatch --array=0-9 slurm/phase0_tiered.sbatch                                  # continuation set (perplexity)
@@ -35,7 +39,9 @@ export TOKENIZERS_PARALLELISM=false
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 PROMPTS="${PROMPTS:-data/prompts/qwen7b_cont_8k-32k.jsonl}"
 MODE="${MODE:-continuation}"                      # continuation | tasks
-KEY_CODECS="${KEY_CODECS:-block}"                 # set from the MPS pre-screen; e.g. "group256 static"
+KEY_CODECS="${KEY_CODECS:-group256}"              # cheapest passing uniform codec in the 1.5B MPS pre-screen
+HOT_BITS="${HOT_BITS:-4}"                         # ladder HOT width (the bar's width); 16 = fp16
+WARM_BITS="${WARM_BITS:-3}"                       # ladder WARM width: 3 or 2 (see the MPS ladder run)
 CALIB="${CALIB:-runs/calib/$(basename "$MODEL" | tr 'A-Z' 'a-z').pt}"
 OUT="${OUT:-runs/cluster/$(basename "$MODEL" | tr 'A-Z' 'a-z')-$MODE}"
 LIMIT="${LIMIT:-}"
@@ -45,7 +51,8 @@ mkdir -p "$OUT" runs/slurm
 SHARD="${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1}"
 
 args=(--model "$MODEL" --prompts "$PROMPTS" --out "$OUT" --max-context 32000
-      --variants $VARIANTS --key-codecs $KEY_CODECS --shard "$SHARD" --device cuda)
+      --variants $VARIANTS --key-codecs $KEY_CODECS --hot-bits "$HOT_BITS" --warm-bits "$WARM_BITS"
+      --eps-w 1e-3 --eps-c 0.02 --shard "$SHARD" --device cuda)
 if [[ " $KEY_CODECS " == *" static "* ]]; then
   [[ -f "$CALIB" ]] || { echo "missing calibration $CALIB; run slurm/phase0_calibrate.sbatch" >&2; exit 1; }
   args+=(--key-calib "$CALIB")
