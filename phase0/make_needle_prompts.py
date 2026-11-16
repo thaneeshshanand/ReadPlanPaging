@@ -49,7 +49,8 @@ def main():
                 sentences.insert(at, f"The secret access code for the vault is {code}")
                 text = ". ".join(sentences)
                 prompt = f"{text}\n\nWhat is the secret access code for the vault? Answer with the number only."
-                rec = {"id": f"needle_{length}_d{int(depth * 100):02d}", "prompt": prompt, "answer": str(code)}
+                rec = {"id": f"needle_{length}_d{int(depth * 100):02d}", "prompt": prompt, "answer": str(code),
+                       "answers": [str(code)], "task": "needle", "metric": "string_match_all", "max_new_tokens": 16}
                 f.write(json.dumps(rec) + "\n")
     print(f"wrote {len(args.lengths) * len(args.depths)} prompts to {args.out}")
 

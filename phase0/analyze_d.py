@@ -173,7 +173,7 @@ def main():
                         eos = set(metas[str(run)]["eos_ids"])
                         ids = ids[: next((i for i, x in enumerate(ids) if x in eos), len(ids))]
                         pred = tok.decode(ids, skip_special_tokens=True)
-                        row["task_score"] = score(info["metric"], pred, info["answers"], info.get("all_classes"))
+                        row["task_score"] = score(info["metric"], pred, info["answers"], info.get("all_classes"), info.get("task"))
                         a["task_score"] += row["task_score"]
                         a["task_n"] += 1
                 per_prompt.append(row)
