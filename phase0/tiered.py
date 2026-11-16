@@ -508,6 +508,23 @@ def decode(model, cache, n0, first_tok, device, *, teacher=None, max_new=0, eos_
     return arr
 
 
+def write_meta(path: Path, meta: dict):
+    """Merge this invocation into meta.json: variant definitions accumulate (union by name)
+    and every invocation keeps its own record, so adding variants never loses provenance."""
+    invocations, vmap = [], {}
+    if path.exists():
+        old = json.loads(path.read_text())
+        if old.get("model") != meta["model"]:
+            sys.exit(f"{path} belongs to {old.get('model')}, not {meta['model']}")
+        invocations = old.get("invocations") or [
+            {k: x for k, x in old.items() if k != "variants"} | {"variants": [v["name"] for v in old.get("variants", [])]}]
+        vmap = {v["name"]: v for v in old.get("variants", [])}
+    vmap.update({v["name"]: v for v in meta["variants"]})
+    record = {k: x for k, x in meta.items() if k != "variants"} | {"variants": [v["name"] for v in meta["variants"]]}
+    merged = meta | {"variants": list(vmap.values()), "invocations": invocations + [record]}
+    path.write_text(json.dumps(merged, indent=2))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", required=True)
@@ -592,7 +609,7 @@ def main():
         "code": code_version() | {"tiered_script": str(Path(__file__).resolve())},
         "versions": {"torch": torch.__version__, "transformers": transformers.__version__},
     }
-    (args.out / "meta.json").write_text(json.dumps(meta, indent=2))
+    write_meta(args.out / "meta.json", meta)
 
     done_path = args.out / "done.jsonl"
     done = set()
