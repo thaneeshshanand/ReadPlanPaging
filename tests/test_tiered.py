@@ -219,19 +219,48 @@ def test_rho_key_codecs_and_new_kinds():
     assert e == pytest.approx(0.1 + 0.48 * 0.25 + 0.02 * 1.125 + 0.4 * 0.125 + 0.01)
 
 
-def _row(name, kind, ppl, rho_meta, bits=4):
-    return {"variant": name, "kind": kind, "bits": bits, "ppl_increase": ppl, "ppl_increase_ci_hi": ppl + 0.004, "rho_meta": rho_meta}
+def _row(name, kind, ppl, rho_meta, bits=4, kc="block", hot=16):
+    return {"variant": name, "kind": kind, "bits": bits, "kcodec": kc, "hot_bits": hot,
+            "ppl_increase": ppl, "ppl_increase_ci_hi": ppl + 0.004, "rho_meta": rho_meta}
 
 
-def test_decision_rule():
-    base = [_row("fp16", "fp16", 0.0, 1.0), _row("fp8", "fp8", 0.002, 0.5), _row("uniform8", "uniform", 0.0, 0.57, 8)]
-    nogo = analyze_d.decide(base + [_row("uniform4", "uniform", 0.008, 0.32), _row("e", "coldkeys", 0.001, 0.2)])
-    assert nogo["verdict"].startswith("no-go: uniform 4-bit")
-    go = analyze_d.decide(base + [_row("uniform4", "uniform", 0.03, 0.32), _row("e", "coldkeys", 0.009, 0.37)])
-    assert go["verdict"] == "go" and go["cheapest_passing_uniform"]["variant"] == "fp8"
-    assert go["decisive_rows_with_ci_crossing_limit"] == ["e"]
-    short = analyze_d.decide(base + [_row("uniform4", "uniform", 0.03, 0.32), _row("c", "promote", 0.005, 0.38)])
-    assert short["verdict"].startswith("no-go: no tiered")  # 0.38 > 0.75 x 0.5
+def test_decision_rule_rebased_ladder():
+    base = [_row("fp16", "fp16", 0.0, 1.0, bits=16, kc=""), _row("fp8", "fp8", 0.0, 0.5, bits=8, kc=""),
+            _row("u8", "uniform", 0.001, 0.57, 8), _row("u4", "uniform", 0.008, 0.32, 4),
+            _row("u3", "uniform", 0.03, 0.26, 3), _row("u2", "uniform", 0.2, 0.2, 2)]
+    # b* = 4 (lowest passing), WARM = 3; budget 0.75 x 0.32 = 0.24
+    incomplete = analyze_d.decide(base)
+    assert incomplete["per_codec"]["block"]["b_star"] == 4 and incomplete["per_codec"]["block"]["warm_bits"] == 3
+    assert incomplete["verdict"].startswith("incomplete")
+    go = analyze_d.decide(base + [_row("e", "coldkeys", 0.009, 0.23, bits=3, hot=4)])
+    assert go["verdict"] == "go" and go["per_codec"]["block"]["passing"][0]["ci_hi_above_limit"]
+    too_costly = analyze_d.decide(base + [_row("e", "coldkeys", 0.005, 0.25, bits=3, hot=4)])
+    assert too_costly["verdict"] == "no-go: no ladder below b* passes"
+    wrong_ladder = analyze_d.decide(base + [_row("c", "promote", 0.0, 0.1, bits=4, hot=16)])  # fp16/4-bit ladder ignored
+    assert wrong_ladder["verdict"].startswith("incomplete")
+    lowest = [r if r["variant"] != "u2" else _row("u2", "uniform", 0.009, 0.2, 2) for r in base]
+    assert analyze_d.decide(lowest)["verdict"].startswith("no-go: b* is the lowest")
+    assert "fp8" not in str(analyze_d.decide(base)["per_codec"])  # fp8 never becomes b*
+
+
+def test_rho_with_hot_at_bstar():
+    fr = {"hot": 0.1, "warm": 0.5, "cold": 0.4, "prom_warm": 0.02, "prom_cold": 0.01}
+    D = 128
+    k4, v4 = (1024 + 512) / 8192, (1024 + 64) / 8192
+    h = k4 + v4
+    k3 = (768 + 512) / 8192
+    v3 = (768 + 64) / 8192
+    got = analyze_d.rho({"kind": "coldkeys", "bits": 3, "R": 4, "hot_bits": 4}, fr, True, D)
+    assert got == pytest.approx(0.1 * h + 0.48 * (k3 + v3) + 0.02 * (k3 + h) + 0.4 * k3 + 0.01 * h)
+
+
+def test_hot_at_bstar_reads_hot_blocks_from_bstar_copy():
+    q, k, v = make_inputs(320)
+    a = run(Variant("fresh", eps_w=-1.0, eps_c=0.0, hot_bits=4), q, k, v)  # everything HOT, at 4 bits
+    b = run(Variant("uniform", bits=4), q, k, v)
+    assert torch.allclose(a, b, atol=1e-4)
+    assert Variant("coldkeys", R=4, eps_w=1e-3, eps_c=0.02, bits=3, hot_bits=4, kcodec="group256").name == \
+        "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
 
 
 def test_bootstrap_ci_brackets_point_estimate():

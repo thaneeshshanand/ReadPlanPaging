@@ -20,6 +20,10 @@ Variants (docs/PHASE0.md, D):
     coldkeys_R{R}   (e) as (c), but COLD blocks have their 4-bit keys read every step
                     (values skipped), so promotion scores them like WARM blocks
 
+Re-based ladder (--hot-bits b*, --warm-bits w): HOT blocks, fix-up reads and the HOT
+scores used for promotion come from a b*-bit copy instead of fp16 (the newest, partial
+block stays fp16); WARM uses w bits.
+
 Key codecs (--key-codecs) set how key scales and offsets are shared, for uniform and
 tiered variants alike: per 16-token block (block), per 256-token group (group256), or
 static per layer/head/channel values from calibrate_keys.py (static, --key-calib).
@@ -105,6 +109,7 @@ class Variant:
     scan_bits: int = 1
     scan_codec: str = "minmax"
     kcodec: str = "block"  # key scale/offset sharing: per 16-token block, per 256-token group, static
+    hot_bits: int = 16  # HOT tier precision: 16 = fp16, else a b*-bit copy (re-based ladder)
 
     @property
     def name(self) -> str:
@@ -120,14 +125,15 @@ class Variant:
             tag += f"_c{self.eps_c:g}"
         r = "" if self.kind == "fresh" else f"_R{self.R}"
         scan = "_scan-meanabs" if self.kind == "promote" and self.scan_codec != "minmax" else ""
-        return f"{self.kind}{r}_{tag}{scan}{ksuf}"
+        ladder = "" if self.hot_bits >= 16 else f"_h{self.hot_bits}b{self.bits}"
+        return f"{self.kind}{r}_{tag}{scan}{ladder}{ksuf}"
 
     @property
     def promotes(self) -> bool:
         return self.kind in ("promote", "twotier", "coldkeys")
 
 
-def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",), kcodecs=("block",)) -> list[Variant]:
+def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",), kcodecs=("block",), hot_bits=16) -> list[Variant]:
     out = {}
     for spec in names:
         if spec in ("fp16", "fp8"):
@@ -144,7 +150,8 @@ def build_variants(names, eps_ws, eps_cs, warm_bits, scan_codecs=("minmax",), kc
                 for c in ([0.0] if kind in ("hot_only", "twotier") else eps_cs):
                     for sc in (scan_codecs if kind == "promote" else ["minmax"]):
                         for kc in (["block"] if kind == "hot_only" else kcodecs):
-                            vs.append(Variant(kind, bits=warm_bits, R=R, eps_w=w, eps_c=c, scan_codec=sc, kcodec=kc))
+                            vs.append(Variant(kind, bits=warm_bits, R=R, eps_w=w, eps_c=c, scan_codec=sc, kcodec=kc,
+                                              hot_bits=hot_bits))
         for v in vs:
             out[v.name] = v
     return list(out.values())
@@ -381,6 +388,14 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
         counts[1] = (planned == WARM).sum()
         counts[2] = (planned == COLD).sum()
         tok = lambda t: t.repeat_interleave(BLOCK, dim=1)[:, :n]  # block tiers -> token tiers
+        if v.hot_bits < 16:  # re-based ladder: HOT reads come from the b*-bit copy
+            if "hot" not in st:
+                st["hot"] = CoarseStore(v.hot_bits, values=True, kcodec=v.kcodec, calib=STATE.layer_calib(layer, K.device))
+            st["hot"].update(K, V)
+            Kh, Vh = st["hot"].full("k", K), st["hot"].full("v", V)
+            s_hot = torch.bmm(qv, Kh.transpose(1, 2)) * scale
+        else:
+            Kh, Vh, s_hot = Kf, Vf, s16
         warm_store = None
         if v.kind != "hot_only":
             if "coarse" not in st:
@@ -389,7 +404,7 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
             warm_store.update(K, V)
         if v.promotes:
             Kw = warm_store.full("k", K)
-            s_c = torch.where(tok(planned == HOT)[:, None, :], s16, torch.bmm(qv, Kw.transpose(1, 2)) * scale)
+            s_c = torch.where(tok(planned == HOT)[:, None, :], s_hot, torch.bmm(qv, Kw.transpose(1, 2)) * scale)
             if v.kind == "promote":
                 if "scan" not in st:
                     st["scan"] = CoarseStore(v.scan_bits, values=False, codec=v.scan_codec, kcodec=v.kcodec,
@@ -416,10 +431,10 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
         STATE.tail[layer] = torch.cat([_tail(before), _tail(after)])
         hot_tok = tok(tiers == HOT)[:, :, None]
         if warm_store is None:
-            Ke, Ve = Kf, Vf
+            Ke, Ve = Kh, Vh
         else:
-            Ke = torch.where(hot_tok, Kf, warm_store.full("k", K))
-            Ve = torch.where(hot_tok, Vf, warm_store.full("v", V))
+            Ke = torch.where(hot_tok, Kh, warm_store.full("k", K))
+            Ve = torch.where(hot_tok, Vh, warm_store.full("v", V))
         o = attend(Ke, Ve, tok(tiers == COLD))
     STATE.counts[layer] = counts
     STATE.err[layer, 0] = ((o - o_ref) ** 2).sum()
@@ -507,6 +522,7 @@ def main():
     p.add_argument("--eps-w", type=float, nargs="+", default=[1e-3])
     p.add_argument("--eps-c", type=float, nargs="+", default=[0.02])
     p.add_argument("--warm-bits", type=int, default=4)
+    p.add_argument("--hot-bits", type=int, default=16, help="HOT tier precision for the re-based ladder (16 = fp16)")
     p.add_argument("--scan-codec", nargs="+", default=["minmax"], choices=["minmax", "meanabs"],
                    help="1-bit COLD key plane codec(s) for promote variants")
     p.add_argument("--key-codecs", nargs="+", default=["block"], choices=list(KEY_CODECS))
@@ -527,7 +543,8 @@ def main():
     torch.manual_seed(args.seed)
     device = pick_device(args.device)
     args.out.mkdir(parents=True, exist_ok=True)
-    variants = build_variants(args.variants, args.eps_w, args.eps_c, args.warm_bits, args.scan_codec, args.key_codecs)
+    variants = build_variants(args.variants, args.eps_w, args.eps_c, args.warm_bits, args.scan_codec, args.key_codecs,
+                              args.hot_bits)
     if variants[0].kind != "fp16":
         variants = [Variant("fp16")] + [v for v in variants if v.kind != "fp16"]
 
@@ -589,12 +606,13 @@ def main():
     print(f"device={device} variants={[v.name for v in variants]} prompts={len(prompts)}")
     for i, rec in enumerate(prompts):
         pid = str(rec["id"])
-        if pid in done:
-            continue
+        pdir = args.out / pid
+        todo = [v for v in variants if args.overwrite or pid not in done or not (pdir / f"{v.name}.npz").exists()]
+        if not todo:
+            continue  # every requested variant already exists; new variants are added to finished prompts
         ids, truncated = encode(tok, rec, use_template, args.max_context)
         n0 = len(ids)
         max_new = min(args.max_new_tokens, int(rec.get("max_new_tokens", args.max_new_tokens)))
-        pdir = args.out / pid
         pdir.mkdir(exist_ok=True)
         cache = DynamicCache()
         STATE.active = False
@@ -624,7 +642,7 @@ def main():
         else:
             teacher = greedy
         timings = {"prefill_s": round(t_prefill, 2)}
-        for v in variants:
+        for v in todo:
             t0 = time.perf_counter()
             STATE.variant = v
             arr = decode(model, cache, n0, teacher[0], device, teacher=teacher)
