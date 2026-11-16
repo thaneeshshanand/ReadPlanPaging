@@ -1,22 +1,25 @@
 #!/bin/bash
-# Phase 0 part D on the cluster: tiered-read simulation with the reduced variant list
-#   fp16, fp8, uniform4, a (fresh), c (promote_R4), d (twotier_R4), e (coldkeys_R4)
-# on a HOT/WARM ladder (HOT_BITS/WARM_BITS) with KEY_CODECS key scales. fp8 here is the
-# emulation; reproduce it with vLLM's real fp8 KV cache before quoting it.
-# A second ladder is a second submission into the same OUT (variants are added to
-# finished prompts), e.g. WARM_BITS=2 sbatch --array=0-9 slurm/phase0_tiered.sbatch
+# Phase 0 on the cluster: Qwen2.5-7B-Instruct at 8K-32K, in three stages (docs/PHASE0.md,
+# Decision; the go rule and variant list are frozen until this run and the 3B laptop run are in).
 #
-# One array task per prompt shard. Submit from the repo root, e.g.:
-#   sbatch --array=0-9 slurm/phase0_tiered.sbatch                                  # continuation set (perplexity)
-#   PROMPTS=data/prompts/qwen7b_tasks_8k-32k.jsonl MODE=tasks sbatch --array=0-9 slurm/phase0_tiered.sbatch
+#   STAGE=verify   one prompt: RoPE check and the patched fp16 path against stock SDPA on
+#                  CUDA (attention output and teacher-forced logits); fails if they differ
+#   STAGE=uniform  uniform pre-screen that sets this model's bar: fp16, uniform 4- and 3-bit,
+#                  asymmetric K4/V3, K4/V2, K3/V4 (group256 keys)
+#   STAGE=ladder   variants e (coldkeys_R4) and f (live) on the 4/3 and 4/2 ladders
 #
-# First submit a one-prompt timing job and size --time from it (none of these numbers
-# have been measured on a GPU yet):
-#   LIMIT=1 sbatch --array=0 --time=01:00:00 slurm/phase0_tiered.sbatch
+# Run the stages in order. Submit from the repo root, e.g.:
+#   STAGE=verify  sbatch --array=0 --time=01:00:00 slurm/phase0_tiered.sbatch
+#   STAGE=uniform sbatch --array=0-9 slurm/phase0_tiered.sbatch
+#   STAGE=ladder  sbatch --array=0-9 slurm/phase0_tiered.sbatch
+# and repeat the uniform and ladder stages on the task set for free-running task scores:
+#   STAGE=uniform PROMPTS=data/prompts/qwen7b_tasks_8k-32k.jsonl MODE=tasks sbatch --array=0-9 slurm/phase0_tiered.sbatch
+#   STAGE=ladder  PROMPTS=data/prompts/qwen7b_tasks_8k-32k.jsonl MODE=tasks sbatch --array=0-9 slurm/phase0_tiered.sbatch
 #
-# Static key codec: run slurm/phase0_calibrate.sbatch first (writes $CALIB).
-# data/ is not in git: copy data/prompts/ to the cluster checkout before submitting.
-# Analyse afterwards (CPU is fine):
+# The verify job's log shows per-prompt timings; size --time for the other stages from it
+# (no GPU timing has been measured yet). Stages write into the same OUT; variants are added
+# to finished prompts. data/ is not in git: copy data/prompts/ to the cluster checkout first.
+# Analyse afterwards (CPU is fine); by_length.csv has HOT/WARM/COLD fractions by context length:
 #   python phase0/analyze_d.py --runs "$OUT" --out "$OUT/analysis"
 #
 #SBATCH --job-name=rpp-tiered
@@ -24,7 +27,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
-#SBATCH --time=04:00:00            # placeholder until the timing job has run
+#SBATCH --time=04:00:00            # placeholder until the verify job has run
 #SBATCH --output=runs/slurm/%x-%A_%a.out
 
 set -euo pipefail
@@ -36,34 +39,37 @@ export HF_HOME="${HF_HOME:-/scratch/$USER/hf}"
 export TOKENIZERS_PARALLELISM=false
 # -------------------------------------------------------------------------------------
 
+STAGE="${STAGE:?set STAGE=verify, uniform or ladder}"
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 PROMPTS="${PROMPTS:-data/prompts/qwen7b_cont_8k-32k.jsonl}"
-MODE="${MODE:-continuation}"                      # continuation | tasks
-KEY_CODECS="${KEY_CODECS:-group256}"              # cheapest passing uniform codec in the 1.5B MPS pre-screen
-HOT_BITS="${HOT_BITS:-4}"                         # ladder HOT width (the bar's width); 16 = fp16
-WARM_BITS="${WARM_BITS:-3}"                       # ladder WARM width: 3 or 2 (see the MPS ladder run)
-CALIB="${CALIB:-runs/calib/$(basename "$MODEL" | tr 'A-Z' 'a-z').pt}"
+MODE="${MODE:-continuation}"                      # continuation (perplexity) | tasks (free-run task scores)
 OUT="${OUT:-runs/cluster/$(basename "$MODEL" | tr 'A-Z' 'a-z')-$MODE}"
 LIMIT="${LIMIT:-}"
-VARIANTS="fp16 fp8 uniform4 fresh promote_R4 twotier_R4 coldkeys_R4"
 
 mkdir -p "$OUT" runs/slurm
 SHARD="${SLURM_ARRAY_TASK_ID:-0}/${SLURM_ARRAY_TASK_COUNT:-1}"
 
-args=(--model "$MODEL" --prompts "$PROMPTS" --out "$OUT" --max-context 32000
-      --variants $VARIANTS --key-codecs $KEY_CODECS --hot-bits "$HOT_BITS" --warm-bits "$WARM_BITS"
+args=(--model "$MODEL" --prompts "$PROMPTS" --max-context 32000 --key-codecs group256
       --eps-w 1e-3 --eps-c 0.02 --shard "$SHARD" --device cuda)
-if [[ " $KEY_CODECS " == *" static "* ]]; then
-  [[ -f "$CALIB" ]] || { echo "missing calibration $CALIB; run slurm/phase0_calibrate.sbatch" >&2; exit 1; }
-  args+=(--key-calib "$CALIB")
-fi
 if [[ "$MODE" == continuation ]]; then
   args+=(--reference record --max-new-tokens 129)
 else
   args+=(--reference greedy --free-run --max-new-tokens 128)
 fi
-[[ -n "$LIMIT" ]] && args+=(--limit "$LIMIT")
 
-echo "job=${SLURM_JOB_ID:-local} shard=$SHARD host=$(hostname) commit=$(git rev-parse --short HEAD)"
+echo "job=${SLURM_JOB_ID:-local} stage=$STAGE shard=$SHARD host=$(hostname) commit=$(git rev-parse --short HEAD)"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
-python phase0/tiered.py "${args[@]}"
+
+case "$STAGE" in
+  verify)
+    python phase0/tiered.py "${args[@]}" --out "$OUT/verify" --variants fp16 uniform4 --verify --limit "${LIMIT:-1}" ;;
+  uniform)
+    python phase0/tiered.py "${args[@]}" --out "$OUT" ${LIMIT:+--limit "$LIMIT"} \
+      --variants fp16 uniform4 uniform3 uniformK4V3 uniformK4V2 uniformK3V4 ;;
+  ladder)
+    for warm in 3 2; do
+      python phase0/tiered.py "${args[@]}" --out "$OUT" ${LIMIT:+--limit "$LIMIT"} \
+        --hot-bits 4 --warm-bits "$warm" --variants coldkeys_R4 live
+    done ;;
+  *) echo "unknown STAGE=$STAGE" >&2; exit 1 ;;
+esac
