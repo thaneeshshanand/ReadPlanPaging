@@ -1,7 +1,13 @@
 #!/bin/bash
 # Phase 0 on the cluster: Qwen2.5-7B-Instruct at 8K-32K, in three stages (docs/PHASE0.md,
-# Decision; the go rule and variant list are frozen until this run and the 3B laptop run are in).
+# Decision; the go rule and variant list are frozen until this run and the 3B laptop run are in),
+# preceded by a CUDA replication of the Granite 4K laptop run.
 #
+#   STAGE=replicate4k  Granite 3.3 2B on the 4K continuation set (data/prompts/granite_cont_4k.jsonl),
+#                  same revision and arguments as the MPS run: fp16, the bar (K4/V3), uniform
+#                  4-bit (both group256, with --verify against stock SDPA), then e and f on 4/3.
+#                  Then analyses it and prints a per-prompt and summary comparison against
+#                  results/prescreen-4k/granite-3.3-2b. Run it unsharded (no --array).
 #   STAGE=verify   one prompt: RoPE check and the patched fp16 path against stock SDPA on
 #                  CUDA (attention output and teacher-forced logits); fails if they differ
 #   STAGE=uniform  uniform pre-screen that sets this model's bar: fp16, uniform 4- and 3-bit,
@@ -9,6 +15,7 @@
 #   STAGE=ladder   variants e (coldkeys_R4) and f (live) on the 4/3 and 4/2 ladders
 #
 # Run the stages in order. Submit from the repo root, e.g.:
+#   STAGE=replicate4k sbatch --time=02:00:00 slurm/phase0_tiered.sbatch
 #   STAGE=verify  sbatch --array=0 --time=01:00:00 slurm/phase0_tiered.sbatch
 #   STAGE=uniform sbatch --array=0-9 slurm/phase0_tiered.sbatch
 #   STAGE=ladder  sbatch --array=0-9 slurm/phase0_tiered.sbatch
@@ -39,7 +46,7 @@ export HF_HOME="${HF_HOME:-/scratch/$USER/hf}"
 export TOKENIZERS_PARALLELISM=false
 # -------------------------------------------------------------------------------------
 
-STAGE="${STAGE:?set STAGE=verify, uniform or ladder}"
+STAGE="${STAGE:?set STAGE=replicate4k, verify, uniform or ladder}"
 MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct}"
 PROMPTS="${PROMPTS:-data/prompts/qwen7b_cont_8k-32k.jsonl}"
 MODE="${MODE:-continuation}"                      # continuation (perplexity) | tasks (free-run task scores)
@@ -61,6 +68,21 @@ echo "job=${SLURM_JOB_ID:-local} stage=$STAGE shard=$SHARD host=$(hostname) comm
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
 
 case "$STAGE" in
+  replicate4k)
+    GM=ibm-granite/granite-3.3-2b-instruct
+    GREV=707f574c62054322f6b5b04b6d075f0a8f05e0f0          # revision of the MPS run
+    GOUT="${OUT_REPLICATE:-runs/cluster/granite-3.3-2b-replicate4k}"
+    REF=results/prescreen-4k/granite-3.3-2b
+    [[ "$SHARD" == 0/1 ]] || { echo "replicate4k runs unsharded: submit without --array" >&2; exit 1; }
+    g=(--model "$GM" --revision "$GREV" --prompts data/prompts/granite_cont_4k.jsonl --out "$GOUT"
+       --max-context 4096 --max-new-tokens 129 --reference record --eps-w 1e-3 --eps-c 0.02
+       --key-codecs group256 --device cuda ${LIMIT:+--limit "$LIMIT"})
+    python -u phase0/tiered.py "${g[@]}" --verify --variants fp16 uniformK4V3 uniform4
+    python -u phase0/tiered.py "${g[@]}" --hot-bits 4 --warm-bits 3 --variants coldkeys_R4 live
+    python -u phase0/analyze_d.py --runs "$GOUT" --out "$GOUT/analysis"
+    python -u phase0/compare_runs.py --a "$GOUT/analysis" --b "$REF" --labels cuda mps --out "$GOUT/analysis" \
+      --variants fp16 uniformK4V3_kgroup256 uniform4_kgroup256 \
+                 coldkeys_R4_w0.001_c0.02_h4b3_kgroup256 live_w0.001_c0.02_h4b3_kgroup256 ;;
   verify)
     python phase0/tiered.py "${args[@]}" --out "$OUT/verify" --variants fp16 uniform4 --verify --limit "${LIMIT:-1}" ;;
   uniform)

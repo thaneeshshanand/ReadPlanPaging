@@ -355,3 +355,13 @@ def test_decision_comparison_rows():
     roles = {c["role"]: c["variant"] for c in d["comparison"]}
     assert roles == {"bar": "k4v3", "uniform4": "u4g", "coldkeys": "e", "live": "f"}  # group256 4-bit, not the asymmetric bar
     assert all(c["prompts_above_2pct"] == 2 and c["worst_prompt"].endswith("-p") for c in d["comparison"])
+
+
+def test_prompt_flags():
+    rows = [{"variant": "a", "prompt": "p1", "ppl_increase": 0.01, "nll_sum": 1.0, "fp16_nll_sum": 1.0, "tf_agree": 0.5},
+            {"variant": "a", "prompt": "p2", "ppl_increase": -0.12, "nll_sum": 1.0, "fp16_nll_sum": 1.1, "tf_agree": 0.5},
+            {"variant": "a", "prompt": "p3", "ppl_increase": float("nan"), "nll_sum": float("nan"), "fp16_nll_sum": 1.0, "tf_agree": 0.5},
+            {"variant": "a", "prompt": "p4", "ppl_increase": "", "nll_sum": 1.0, "fp16_nll_sum": float("inf"), "tf_agree": 0.5}]
+    f = {r["prompt"]: r["reason"] for r in analyze_d.prompt_flags(rows)}
+    assert set(f) == {"p2", "p3", "p4"}
+    assert "> 10%" in f["p2"] and "non-finite nll_sum" in f["p3"] and "non-finite fp16_nll_sum" in f["p4"]

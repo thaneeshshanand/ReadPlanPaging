@@ -140,6 +140,8 @@ def bootstrap_ppl_ci(nll_v, nll_f, tokens, n=BOOTSTRAP, seed=0):
 
 
 WIDTHS = (16, 8, 4, 3, 2)
+FLAG_LIMIT = 0.10  # per-prompt |perplexity increase| beyond this is flagged in flags.csv
+FLAG_FIELDS = ("nll_sum", "fp16_nll_sum", "ppl_increase", "tf_agree", "hot", "warm", "cold")
 WORST_LIMIT = 0.02  # per-prompt perplexity increase counted in prompts_above_2pct (reported, does not decide)
 COMPARE_KCODEC = "group256"  # key codec of the ladders: the uniform 4-bit row shown beside e and f  # uniform widths; 16 is fp16
 
@@ -190,6 +192,7 @@ def decide(rows: list[dict]) -> dict:
     comparison = [{"role": role, "variant": r["variant"], "ppl_increase": r["ppl_increase"],
                    "ci_lo": r.get("ppl_increase_ci_lo"), "ci_hi": r.get("ppl_increase_ci_hi"), "rho_meta": r["rho_meta"],
                    "worst_prompt": r.get("worst_prompt"), "worst_prompt_increase": r.get("ppl_increase_prompt_max"),
+                   "best_prompt": r.get("best_prompt"), "best_prompt_increase": r.get("ppl_increase_prompt_min"),
                    "prompts_above_2pct": r.get("prompts_above_2pct"), "prompts": r.get("prompts")}
                   for role, r in cmp_rows if r is not None]
     return {
@@ -204,6 +207,27 @@ def decide(rows: list[dict]) -> dict:
                 f"increase <= {PPL_LIMIT:.0%}, bytes with metadata; go if an e/f variant has ppl increase <= {PPL_LIMIT:.0%} and rho_meta <= "
                 f"{1 - MIN_SAVING:.2f} x bar; fp8 is emulation only and excluded",
     }
+
+
+def _finite(x) -> bool:
+    try:
+        return math.isfinite(float(x))
+    except (TypeError, ValueError):
+        return False
+
+
+def prompt_flags(per_prompt: list[dict]) -> list[dict]:
+    """Per-prompt rows with a non-finite numeric field or |perplexity increase| > FLAG_LIMIT."""
+    out = []
+    for r in per_prompt:
+        bad = [k for k in FLAG_FIELDS if k in r and r[k] != "" and not _finite(r[k])]
+        reasons = [f"non-finite {k}" for k in bad]
+        if _finite(r.get("ppl_increase")) and abs(float(r["ppl_increase"])) > FLAG_LIMIT:
+            reasons.append(f"|ppl increase| > {FLAG_LIMIT:.0%}")
+        if reasons:
+            out.append({"variant": r["variant"], "prompt": r["prompt"], "ppl_increase": r.get("ppl_increase"),
+                        "nll_sum": r.get("nll_sum"), "fp16_nll_sum": r.get("fp16_nll_sum"), "reason": "; ".join(reasons)})
+    return out
 
 
 def by_length(per_prompt: list[dict], kinds: dict) -> list[dict]:
@@ -328,6 +352,7 @@ def main():
         err_layers = np.sqrt(layer_num[name] / np.maximum(layer_den[name], 1e-30))
         hot_eff = fr["hot"] + fr["prom_warm"] + fr["prom_cold"]
         mine = [r for r in per_prompt if r["variant"] == name and r["tokens"]]
+        fin = [r for r in mine if _finite(r["ppl_increase"])]
         ci = bootstrap_ppl_ci([r["nll_sum"] for r in mine], [r["fp16_nll_sum"] for r in mine], [r["tokens"] for r in mine])
         paired = math.expm1((sum(r["nll_sum"] for r in mine) - sum(r["fp16_nll_sum"] for r in mine))
                             / max(sum(r["tokens"] for r in mine), 1))
@@ -349,8 +374,12 @@ def main():
             "ppl_increase_ci_lo": ci[0], "ppl_increase_ci_hi": ci[1],
             "ppl_increase_prompt_median": float(np.median(pp)) if pp else float("nan"),
             "ppl_increase_prompt_max": max(pp) if pp else float("nan"),
-            "worst_prompt": max(mine, key=lambda r: r["ppl_increase"])["prompt"] if mine else "",
+            "worst_prompt": max(fin, key=lambda r: r["ppl_increase"])["prompt"] if fin else "",
+            "ppl_increase_prompt_min": min(pp) if pp else float("nan"),
+            "best_prompt": min(fin, key=lambda r: r["ppl_increase"])["prompt"] if fin else "",
             "prompts_above_2pct": sum(x > WORST_LIMIT for x in pp),
+            "prompts_beyond_10pct": sum(abs(x) > FLAG_LIMIT for x in pp),
+            "prompts_nonfinite": sum(not all(map(_finite, (r[k] for k in FLAG_FIELDS))) for r in mine),
             "tf_agree": a["agree"] / a["tokens"],
             "attn_err_mean": float(err_layers.mean()),
             "attn_err_max_layer": float(err_layers.max()),
@@ -382,8 +411,8 @@ def main():
 
     args.out.mkdir(parents=True, exist_ok=True)
 
-    def write(name, rs):
-        keys = list(dict.fromkeys(k for r in rs for k in r))
+    def write(name, rs, keys=None):
+        keys = keys or list(dict.fromkeys(k for r in rs for k in r))
         with open(args.out / name, "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=keys)
             w.writeheader()
@@ -393,6 +422,8 @@ def main():
     write("summary.csv", rows)
     write("per_layer_err.csv", layer_rows)
     write("per_prompt.csv", per_prompt)
+    flags = prompt_flags(per_prompt)
+    write("flags.csv", flags, ["variant", "prompt", "ppl_increase", "nll_sum", "fp16_nll_sum", "reason"])
     write("by_length.csv", by_length(per_prompt, {r["variant"]: r["kind"] for r in rows}))
     decision = decide(rows)
     (args.out / "decision.json").write_text(json.dumps(decision, indent=2))
@@ -405,7 +436,7 @@ def main():
         "git_commit": commit, "decision": decision, "bootstrap_resamples": BOOTSTRAP, "fp16_ppl": fp_ppl, "run_meta": metas}, indent=2))
 
     print(f"{n_prompts} prompts, {int(fp['tokens'])} reference tokens per variant, fp16 ppl {fp_ppl:.4f} -> {args.out}")
-    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13} {'worst%':>6} {'n>2%':>4}"
+    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13} {'worst%':>6} {'best%':>6} {'n>2%':>4} {'flag':>4}"
     print(hdr)
     for r in rows:
         rc = r["recall_cold"] if r["kind"] != "live" else r["plan_recall_hot"]
@@ -417,7 +448,8 @@ def main():
               f"{r['rho_meta']:6.3f} {r['hot_effective']:6.3f} {r['fixup_rate']:6.4f} {rc if rc == '' else format(rc, '.2f'):>5} "
               f"{r['promotion_precision'] if r['promotion_precision'] == '' else format(r['promotion_precision'], '.2f'):>5} "
               f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f} "
-              f"{100 * r['ppl_increase_prompt_max']:6.2f} {r['prompts_above_2pct']:4d}")
+              f"{100 * r['ppl_increase_prompt_max']:6.2f} {100 * r['ppl_increase_prompt_min']:6.2f} {r['prompts_above_2pct']:4d} "
+              f"{r['prompts_beyond_10pct'] + r['prompts_nonfinite']:4d}")
     print(f"\nDecision: {decision['verdict']}")
     if decision["bar"]:
         print(f"  bar: {decision['bar']['variant']} rho_meta={decision['bar']['rho_meta']:.3f}; budget rho_meta <= {decision['rho_meta_budget']:.3f}")
@@ -425,11 +457,14 @@ def main():
         print(f"  {t['variant']:48} dPPL={100 * t['ppl_increase']:6.2f}% (CI hi {100 * t['ci_hi']:5.2f}%) rho_meta={t['rho_meta']:.3f}"
               f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}"
               f"{'' if t['decides'] else ' (c/d: reported, does not decide)'}")
-    print(f"\n  {'role':9} {'variant':44} {'dPPL% [95% CI]':>22} {'rhoM':>6} {'worst%':>6} {'n>2%':>4}  worst prompt")
+    print(f"\n  {'role':9} {'variant':44} {'dPPL% [95% CI]':>22} {'rhoM':>6} {'worst%':>6} {'best%':>6} {'n>2%':>4}  worst prompt / best prompt")
     for c in decision["comparison"]:
         ci = f"{100 * c['ppl_increase']:6.2f} [{100 * c['ci_lo']:5.2f},{100 * c['ci_hi']:5.2f}]" if c["ci_lo"] is not None else f"{100 * c['ppl_increase']:6.2f}"
         print(f"  {c['role']:9} {c['variant']:44} {ci:>22} {c['rho_meta']:6.3f} {100 * c['worst_prompt_increase']:6.2f} "
-              f"{c['prompts_above_2pct']:4d}  {c['worst_prompt']}")
+              f"{100 * c['best_prompt_increase']:6.2f} {c['prompts_above_2pct']:4d}  {c['worst_prompt']} / {c['best_prompt']}")
+    print(f"\n  flags (non-finite or |per-prompt ppl increase| > {FLAG_LIMIT:.0%}): {len(flags)}")
+    for f in flags:
+        print(f"    {f['variant']:48} {f['prompt']:40} {f['ppl_increase']}  {f['reason']}")
     for kc, e in decision["per_codec"].items():
         print(f"  b*[{kc}]={e['b_star']} (uniform rho_meta {e['uniform_b_star_rho_meta']})"
               + (f" NON-MONOTONE {e['non_monotone_widths']}" if e["non_monotone_widths"] else ""))
