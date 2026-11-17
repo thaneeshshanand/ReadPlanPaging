@@ -365,3 +365,14 @@ def test_prompt_flags():
     f = {r["prompt"]: r["reason"] for r in analyze_d.prompt_flags(rows)}
     assert set(f) == {"p2", "p3", "p4"}
     assert "> 10%" in f["p2"] and "non-finite nll_sum" in f["p3"] and "non-finite fp16_nll_sum" in f["p4"]
+
+
+def test_check_versions_refuses_mixed(tmp_path):
+    m = tmp_path / "meta.json"
+    tiered.check_versions(m, {"torch": "2.15.0", "transformers": "4.57.3"}, False)  # no meta yet: fine
+    m.write_text(json.dumps({"versions": {"torch": "2.9.0", "transformers": "4.57.3"},
+                             "invocations": [{"versions": {"torch": "2.9.0", "transformers": "4.57.3"}}]}))
+    tiered.check_versions(m, {"torch": "2.9.0", "transformers": "4.57.3"}, False)  # same: fine
+    with pytest.raises(SystemExit):
+        tiered.check_versions(m, {"torch": "2.15.0", "transformers": "4.57.3"}, False)
+    tiered.check_versions(m, {"torch": "2.15.0", "transformers": "4.57.3"}, True)  # explicitly allowed
