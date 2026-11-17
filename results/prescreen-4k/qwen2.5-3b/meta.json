@@ -1,0 +1,1061 @@
+{
+  "created_utc": "2026-11-17T18:16:30.899803+00:00",
+  "runs": [
+    "runs/prescreen-4k/qwen2.5-3b"
+  ],
+  "prompts": 40,
+  "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+  "decision": {
+    "verdict": "go",
+    "comparison": [
+      {
+        "role": "bar",
+        "variant": "uniform4_kstatic",
+        "ppl_increase": 0.009775973303191429,
+        "ci_lo": 0.004531285189914618,
+        "ci_hi": 0.01530149586818322,
+        "rho_meta": 0.2604835202735125,
+        "worst_prompt": "cont-multi_news-69b0462ff955-4096",
+        "worst_prompt_increase": 0.05979834203250611,
+        "prompts_above_2pct": 10,
+        "prompts": 40
+      },
+      {
+        "role": "uniform4",
+        "variant": "uniform4_kgroup256",
+        "ppl_increase": 0.006130168381266761,
+        "ci_lo": 0.002350795163078215,
+        "ci_hi": 0.00987701572704837,
+        "rho_meta": 0.26437571227207296,
+        "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+        "worst_prompt_increase": 0.03560979784033225,
+        "prompts_above_2pct": 3,
+        "prompts": 40
+      },
+      {
+        "role": "coldkeys",
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+        "ppl_increase": 0.012498703159336407,
+        "ci_lo": 0.007120669325212521,
+        "ci_hi": 0.017875410747845422,
+        "rho_meta": 0.13300942819391545,
+        "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+        "worst_prompt_increase": 0.0454612241456378,
+        "prompts_above_2pct": 11,
+        "prompts": 40
+      },
+      {
+        "role": "coldkeys",
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.006480927879500621,
+        "ci_lo": 0.002517985248125687,
+        "ci_hi": 0.010591419335200806,
+        "rho_meta": 0.17902549004142893,
+        "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+        "worst_prompt_increase": 0.03271662100221939,
+        "prompts_above_2pct": 6,
+        "prompts": 40
+      },
+      {
+        "role": "live",
+        "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+        "ppl_increase": 0.018201029488783944,
+        "ci_lo": 0.010778514878583032,
+        "ci_hi": 0.026036425129435378,
+        "rho_meta": 0.13115650355167596,
+        "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+        "worst_prompt_increase": 0.06474473045648121,
+        "prompts_above_2pct": 19,
+        "prompts": 40
+      },
+      {
+        "role": "live",
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.006289591473463284,
+        "ci_lo": 0.0021622556326528547,
+        "ci_hi": 0.01034496809284974,
+        "rho_meta": 0.18118702531954098,
+        "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+        "worst_prompt_increase": 0.03487205088828227,
+        "prompts_above_2pct": 7,
+        "prompts": 40
+      }
+    ],
+    "bar": {
+      "variant": "uniform4_kstatic",
+      "rho_meta": 0.2604835202735125,
+      "ppl_increase": 0.009775973303191429
+    },
+    "rho_meta_budget": 0.19536264020513439,
+    "tiered": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 2,
+        "kcodec": "group256",
+        "ppl_increase": 0.012498703159336407,
+        "ci_hi": 0.017875410747845422,
+        "rho_meta": 0.13300942819391545,
+        "within_limit": false,
+        "under_budget": true
+      },
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.006480927879500621,
+        "ci_hi": 0.010591419335200806,
+        "rho_meta": 0.17902549004142893,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 2,
+        "kcodec": "group256",
+        "ppl_increase": 0.018201029488783944,
+        "ci_hi": 0.026036425129435378,
+        "rho_meta": 0.13115650355167596,
+        "within_limit": false,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.006289591473463284,
+        "ci_hi": 0.01034496809284974,
+        "rho_meta": 0.18118702531954098,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "passing": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.006480927879500621,
+        "ci_hi": 0.010591419335200806,
+        "rho_meta": 0.17902549004142893,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.006289591473463284,
+        "ci_hi": 0.01034496809284974,
+        "rho_meta": 0.18118702531954098,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "per_codec": {
+      "block": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.32275859225047987,
+        "non_monotone_widths": []
+      },
+      "group256": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.26437571227207296,
+        "non_monotone_widths": []
+      },
+      "static": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.2604835202735125,
+        "non_monotone_widths": []
+      }
+    },
+    "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+  },
+  "bootstrap_resamples": 2000,
+  "fp16_ppl": 5.643194242624134,
+  "run_meta": {
+    "runs/prescreen-4k/qwen2.5-3b": {
+      "created_utc": "2026-11-16T20:43:03.701567+00:00",
+      "args": {
+        "model": "Qwen/Qwen2.5-3B-Instruct",
+        "revision": null,
+        "prompts": "data/prompts/qwen_cont_4k.jsonl",
+        "out": "runs/prescreen-4k/qwen2.5-3b",
+        "max_context": 4096,
+        "max_new_tokens": 129,
+        "variants": [
+          "coldkeys_R4",
+          "live"
+        ],
+        "eps_w": [
+          0.001
+        ],
+        "eps_c": [
+          0.02
+        ],
+        "warm_bits": 2,
+        "hot_bits": 4,
+        "scan_codec": [
+          "minmax"
+        ],
+        "key_codecs": [
+          "group256"
+        ],
+        "key_calib": null,
+        "shard": null,
+        "reference": "record",
+        "free_run": false,
+        "limit": null,
+        "device": "auto",
+        "dtype": "float16",
+        "chat_template": "auto",
+        "prefill_chunk": 2048,
+        "seed": 0,
+        "overwrite": false,
+        "verify": false,
+        "verify_tol": 0.01
+      },
+      "variants": [
+        {
+          "kind": "fp16",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "fp16"
+        },
+        {
+          "kind": "fp8",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "name": "fp8"
+        },
+        {
+          "kind": "uniform",
+          "bits": 8,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "name": "uniform8"
+        },
+        {
+          "kind": "uniform",
+          "bits": 8,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "name": "uniform8_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 8,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "static",
+          "hot_bits": 16,
+          "name": "uniform8_kstatic"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "name": "uniform4"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "name": "uniform4_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "static",
+          "hot_bits": 16,
+          "name": "uniform4_kstatic"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "name": "uniform3"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "name": "uniform3_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "static",
+          "hot_bits": 16,
+          "name": "uniform3_kstatic"
+        },
+        {
+          "kind": "uniform",
+          "bits": 2,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "name": "uniform2"
+        },
+        {
+          "kind": "uniform",
+          "bits": 2,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "name": "uniform2_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 2,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "static",
+          "hot_bits": 16,
+          "name": "uniform2_kstatic"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 3,
+          "name": "uniformK4V3_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 2,
+          "name": "uniformK4V2_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 4,
+          "name": "uniformK3V4_kgroup256"
+        },
+        {
+          "kind": "coldkeys",
+          "bits": 3,
+          "R": 4,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
+        },
+        {
+          "kind": "live",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "live_w0.001_c0.02_h4b3_kgroup256"
+        },
+        {
+          "kind": "coldkeys",
+          "bits": 2,
+          "R": 4,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256"
+        },
+        {
+          "kind": "live",
+          "bits": 2,
+          "R": 1,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "live_w0.001_c0.02_h4b2_kgroup256"
+        }
+      ],
+      "seed": 0,
+      "device": "mps",
+      "device_name": null,
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "model_shape": {
+        "layers": 36,
+        "q_heads": 16,
+        "kv_heads": 2,
+        "head_dim": 128
+      },
+      "block_size": 16,
+      "eos_ids": [
+        151643,
+        151645
+      ],
+      "rope_check": {
+        "start_pos": 4096,
+        "rotated_dims_compared": 32,
+        "head_dim": 128,
+        "rel_err_vs_rotated": 0.0,
+        "rel_err_vs_unrotated": 1.4370521306991577,
+        "rel_err_vs_unrotated_all_dims": 0.12722937762737274,
+        "post_rope": true
+      },
+      "key_calibration": null,
+      "code": {
+        "script": "phase0/capture.py",
+        "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+        "git_commit": "1e20fa16631f4ed5f6fcf892c43a48b81875cd4b",
+        "git_dirty": false,
+        "tiered_script": "phase0/tiered.py"
+      },
+      "versions": {
+        "torch": "2.9.0",
+        "transformers": "4.57.3"
+      },
+      "invocations": [
+        {
+          "created_utc": "2026-11-16T07:42:51.574468+00:00",
+          "args": {
+            "model": "Qwen/Qwen2.5-3B-Instruct",
+            "revision": null,
+            "prompts": "data/prompts/qwen_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/qwen2.5-3b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "fp16",
+              "fp8",
+              "uniform8",
+              "uniform4",
+              "uniform3",
+              "uniform2"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 4,
+            "hot_bits": 16,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "block",
+              "group256",
+              "static"
+            ],
+            "key_calib": "runs/calib/qwen2.5-3b-instruct.pt",
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "Qwen/Qwen2.5-3B-Instruct",
+          "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+          "model_shape": {
+            "layers": 36,
+            "q_heads": 16,
+            "kv_heads": 2,
+            "head_dim": 128
+          },
+          "block_size": 16,
+          "eos_ids": [
+            151643,
+            151645
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 32,
+            "head_dim": 128,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.4370521306991577,
+            "rel_err_vs_unrotated_all_dims": 0.12722937762737274,
+            "post_rope": true
+          },
+          "key_calibration": {
+            "model": "Qwen/Qwen2.5-3B-Instruct",
+            "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+            "prompts": [
+              "calib-narrativeqa-fdf07620fd10-4096",
+              "calib-gov_report-bd99c1742ebe-4096",
+              "calib-qmsum-4629a555e474-4096",
+              "calib-multi_news-2346492191f3-4096"
+            ],
+            "tokens": 16384,
+            "created_utc": "2026-11-16T07:42:40.445216+00:00",
+            "code": {
+              "script": "phase0/capture.py",
+              "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+              "git_commit": "2147748e94b20134b80324445074ad22510e9dcf",
+              "git_dirty": false
+            },
+            "max_abs_key_per_layer": [
+              96.25,
+              39.65625,
+              20.796875,
+              14.140625,
+              12.078125,
+              14.796875,
+              13.40625,
+              15.3828125,
+              16.46875,
+              14.8828125,
+              16.0625,
+              16.921875,
+              16.640625,
+              16.953125,
+              16.703125,
+              16.421875,
+              20.0,
+              15.9765625,
+              34.0625,
+              22.65625,
+              24.125,
+              19.953125,
+              19.4375,
+              15.84375,
+              14.21875,
+              11.75,
+              16.296875,
+              44.5,
+              15.984375,
+              28.625,
+              14.703125,
+              15.15625,
+              14.8125,
+              13.2265625,
+              17.75,
+              18.109375
+            ],
+            "max_abs_value_per_layer": [
+              3.9296875,
+              2.318359375,
+              2.244140625,
+              5.10546875,
+              5.0,
+              5.0546875,
+              6.65625,
+              6.171875,
+              5.1328125,
+              5.9765625,
+              6.21875,
+              5.2734375,
+              6.18359375,
+              7.40625,
+              7.47265625,
+              8.15625,
+              6.17578125,
+              7.828125,
+              8.578125,
+              7.98828125,
+              9.859375,
+              8.65625,
+              7.28515625,
+              7.23828125,
+              6.83203125,
+              10.7578125,
+              6.875,
+              7.87109375,
+              7.08984375,
+              8.546875,
+              11.484375,
+              11.484375,
+              24.375,
+              35.84375,
+              11.5078125,
+              13.8359375
+            ],
+            "frac_keys_beyond_fp8_range_per_layer": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "frac_values_beyond_fp8_range_per_layer": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "path": "runs/calib/qwen2.5-3b-instruct.pt"
+          },
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "2147748e94b20134b80324445074ad22510e9dcf",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "fp8",
+            "uniform8",
+            "uniform8_kgroup256",
+            "uniform8_kstatic",
+            "uniform4",
+            "uniform4_kgroup256",
+            "uniform4_kstatic",
+            "uniform3",
+            "uniform3_kgroup256",
+            "uniform3_kstatic",
+            "uniform2",
+            "uniform2_kgroup256",
+            "uniform2_kstatic"
+          ]
+        },
+        {
+          "created_utc": "2026-11-16T18:05:50.521509+00:00",
+          "args": {
+            "model": "Qwen/Qwen2.5-3B-Instruct",
+            "revision": null,
+            "prompts": "data/prompts/qwen_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/qwen2.5-3b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "uniformK4V3",
+              "uniformK4V2",
+              "uniformK3V4"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 4,
+            "hot_bits": 16,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "Qwen/Qwen2.5-3B-Instruct",
+          "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+          "model_shape": {
+            "layers": 36,
+            "q_heads": 16,
+            "kv_heads": 2,
+            "head_dim": 128
+          },
+          "block_size": 16,
+          "eos_ids": [
+            151643,
+            151645
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 32,
+            "head_dim": 128,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.4370521306991577,
+            "rel_err_vs_unrotated_all_dims": 0.12722937762737274,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "1e20fa16631f4ed5f6fcf892c43a48b81875cd4b",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "uniformK4V3_kgroup256",
+            "uniformK4V2_kgroup256",
+            "uniformK3V4_kgroup256"
+          ]
+        },
+        {
+          "created_utc": "2026-11-16T18:37:08.080125+00:00",
+          "args": {
+            "model": "Qwen/Qwen2.5-3B-Instruct",
+            "revision": null,
+            "prompts": "data/prompts/qwen_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/qwen2.5-3b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "coldkeys_R4",
+              "live"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 3,
+            "hot_bits": 4,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "Qwen/Qwen2.5-3B-Instruct",
+          "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+          "model_shape": {
+            "layers": 36,
+            "q_heads": 16,
+            "kv_heads": 2,
+            "head_dim": 128
+          },
+          "block_size": 16,
+          "eos_ids": [
+            151643,
+            151645
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 32,
+            "head_dim": 128,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.4370521306991577,
+            "rel_err_vs_unrotated_all_dims": 0.12722937762737274,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "1e20fa16631f4ed5f6fcf892c43a48b81875cd4b",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+            "live_w0.001_c0.02_h4b3_kgroup256"
+          ]
+        },
+        {
+          "created_utc": "2026-11-16T20:43:03.701567+00:00",
+          "args": {
+            "model": "Qwen/Qwen2.5-3B-Instruct",
+            "revision": null,
+            "prompts": "data/prompts/qwen_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/qwen2.5-3b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "coldkeys_R4",
+              "live"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 2,
+            "hot_bits": 4,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "Qwen/Qwen2.5-3B-Instruct",
+          "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+          "model_shape": {
+            "layers": 36,
+            "q_heads": 16,
+            "kv_heads": 2,
+            "head_dim": 128
+          },
+          "block_size": 16,
+          "eos_ids": [
+            151643,
+            151645
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 32,
+            "head_dim": 128,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.4370521306991577,
+            "rel_err_vs_unrotated_all_dims": 0.12722937762737274,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "1e20fa16631f4ed5f6fcf892c43a48b81875cd4b",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+            "live_w0.001_c0.02_h4b2_kgroup256"
+          ]
+        }
+      ]
+    }
+  }
+}

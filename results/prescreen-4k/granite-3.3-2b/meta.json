@@ -1,0 +1,814 @@
+{
+  "created_utc": "2026-11-17T18:16:31.629638+00:00",
+  "runs": [
+    "runs/prescreen-4k/granite-3.3-2b"
+  ],
+  "prompts": 40,
+  "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+  "decision": {
+    "verdict": "go",
+    "comparison": [
+      {
+        "role": "bar",
+        "variant": "uniformK4V3_kgroup256",
+        "ppl_increase": 0.003048229899488545,
+        "ci_lo": -0.0008449233212112782,
+        "ci_hi": 0.007144338089626183,
+        "rho_meta": 0.24102256028071015,
+        "worst_prompt": "cont-multi_news-d485afe6e98d-4096",
+        "worst_prompt_increase": 0.040567825343155395,
+        "prompts_above_2pct": 6,
+        "prompts": 40
+      },
+      {
+        "role": "uniform4",
+        "variant": "uniform4_kgroup256",
+        "ppl_increase": 0.002001394717786537,
+        "ci_lo": -0.0013858930191027476,
+        "ci_hi": 0.005526655351460722,
+        "rho_meta": 0.27216009626919385,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.029901628292337,
+        "prompts_above_2pct": 3,
+        "prompts": 40
+      },
+      {
+        "role": "coldkeys",
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.0019192306404504907,
+        "ci_lo": -0.002150866312895196,
+        "ci_hi": 0.006342503399378375,
+        "rho_meta": 0.15934474679650365,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.038622877541724554,
+        "prompts_above_2pct": 3,
+        "prompts": 40
+      },
+      {
+        "role": "live",
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.003958593007779226,
+        "ci_lo": 2.3320943456610806e-05,
+        "ci_hi": 0.008142619491134446,
+        "rho_meta": 0.16114845094662483,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.03715758890379628,
+        "prompts_above_2pct": 5,
+        "prompts": 40
+      }
+    ],
+    "bar": {
+      "variant": "uniformK4V3_kgroup256",
+      "rho_meta": 0.24102256028071015,
+      "ppl_increase": 0.003048229899488545
+    },
+    "rho_meta_budget": 0.18076692021053262,
+    "tiered": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.0019192306404504907,
+        "ci_hi": 0.006342503399378375,
+        "rho_meta": 0.15934474679650365,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.003958593007779226,
+        "ci_hi": 0.008142619491134446,
+        "rho_meta": 0.16114845094662483,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "passing": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.0019192306404504907,
+        "ci_hi": 0.006342503399378375,
+        "rho_meta": 0.15934474679650365,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.003958593007779226,
+        "ci_hi": 0.008142619491134446,
+        "rho_meta": 0.16114845094662483,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "per_codec": {
+      "block": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.33054297624760076,
+        "non_monotone_widths": []
+      },
+      "group256": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.27216009626919385,
+        "non_monotone_widths": []
+      },
+      "static": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.2682679042706334,
+        "non_monotone_widths": []
+      }
+    },
+    "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+  },
+  "bootstrap_resamples": 2000,
+  "fp16_ppl": 4.875710516473209,
+  "run_meta": {
+    "runs/prescreen-4k/granite-3.3-2b": {
+      "created_utc": "2026-11-17T06:23:29.800148+00:00",
+      "args": {
+        "model": "ibm-granite/granite-3.3-2b-instruct",
+        "revision": null,
+        "prompts": "data/prompts/granite_cont_4k.jsonl",
+        "out": "runs/prescreen-4k/granite-3.3-2b",
+        "max_context": 4096,
+        "max_new_tokens": 129,
+        "variants": [
+          "coldkeys_R4",
+          "live"
+        ],
+        "eps_w": [
+          0.001
+        ],
+        "eps_c": [
+          0.02
+        ],
+        "warm_bits": 3,
+        "hot_bits": 4,
+        "scan_codec": [
+          "minmax"
+        ],
+        "key_codecs": [
+          "group256"
+        ],
+        "key_calib": null,
+        "shard": null,
+        "reference": "record",
+        "free_run": false,
+        "limit": null,
+        "device": "auto",
+        "dtype": "float16",
+        "chat_template": "auto",
+        "prefill_chunk": 2048,
+        "seed": 0,
+        "overwrite": false,
+        "verify": false,
+        "verify_tol": 0.01
+      },
+      "variants": [
+        {
+          "kind": "fp16",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "fp16"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform4"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform4_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "static",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform4_kstatic"
+        },
+        {
+          "kind": "uniform",
+          "bits": 8,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform8_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform3_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 3,
+          "name": "uniformK4V3_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 2,
+          "name": "uniformK4V2_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 4,
+          "name": "uniformK3V4_kgroup256"
+        },
+        {
+          "kind": "coldkeys",
+          "bits": 3,
+          "R": 4,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
+        },
+        {
+          "kind": "live",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "live_w0.001_c0.02_h4b3_kgroup256"
+        }
+      ],
+      "seed": 0,
+      "device": "mps",
+      "device_name": null,
+      "model": "ibm-granite/granite-3.3-2b-instruct",
+      "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+      "model_shape": {
+        "layers": 40,
+        "q_heads": 32,
+        "kv_heads": 8,
+        "head_dim": 64
+      },
+      "block_size": 16,
+      "eos_ids": [
+        0
+      ],
+      "rope_check": {
+        "start_pos": 4096,
+        "rotated_dims_compared": 16,
+        "head_dim": 64,
+        "rel_err_vs_rotated": 0.0,
+        "rel_err_vs_unrotated": 1.710951328277588,
+        "rel_err_vs_unrotated_all_dims": 0.8790925741195679,
+        "post_rope": true
+      },
+      "key_calibration": null,
+      "code": {
+        "script": "phase0/capture.py",
+        "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+        "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+        "git_dirty": false,
+        "tiered_script": "phase0/tiered.py"
+      },
+      "versions": {
+        "torch": "2.9.0",
+        "transformers": "4.57.3"
+      },
+      "invocations": [
+        {
+          "created_utc": "2026-11-17T03:55:29.910186+00:00",
+          "args": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "revision": null,
+            "prompts": "data/prompts/granite_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/granite-3.3-2b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "fp16",
+              "uniform4"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 4,
+            "hot_bits": 16,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "block",
+              "group256",
+              "static"
+            ],
+            "key_calib": "runs/calib/granite-3.3-2b-instruct.pt",
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": true,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "ibm-granite/granite-3.3-2b-instruct",
+          "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+          "model_shape": {
+            "layers": 40,
+            "q_heads": 32,
+            "kv_heads": 8,
+            "head_dim": 64
+          },
+          "block_size": 16,
+          "eos_ids": [
+            0
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 16,
+            "head_dim": 64,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.710951328277588,
+            "rel_err_vs_unrotated_all_dims": 0.8790925741195679,
+            "post_rope": true
+          },
+          "key_calibration": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+            "prompts": [
+              "calib-narrativeqa-fdf07620fd10-4096",
+              "calib-gov_report-bd99c1742ebe-4096",
+              "calib-qmsum-4629a555e474-4096",
+              "calib-multi_news-2346492191f3-4096"
+            ],
+            "tokens": 16384,
+            "created_utc": "2026-11-17T03:55:10.236957+00:00",
+            "code": {
+              "script": "phase0/capture.py",
+              "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+              "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+              "git_dirty": false
+            },
+            "max_abs_key_per_layer": [
+              48.46875,
+              116.1875,
+              70.875,
+              67.375,
+              68.6875,
+              56.0,
+              48.40625,
+              47.1875,
+              59.0625,
+              54.0625,
+              53.0625,
+              52.46875,
+              53.6875,
+              58.40625,
+              66.75,
+              55.46875,
+              56.15625,
+              56.875,
+              56.96875,
+              57.96875,
+              58.21875,
+              58.53125,
+              54.4375,
+              67.25,
+              56.40625,
+              56.25,
+              60.9375,
+              55.28125,
+              64.1875,
+              53.6875,
+              63.5,
+              60.65625,
+              56.84375,
+              56.625,
+              77.4375,
+              54.28125,
+              65.8125,
+              66.375,
+              57.34375,
+              52.53125
+            ],
+            "max_abs_value_per_layer": [
+              21.78125,
+              10.8046875,
+              11.2578125,
+              11.90625,
+              13.5234375,
+              12.5859375,
+              12.921875,
+              12.640625,
+              15.09375,
+              13.8359375,
+              15.09375,
+              10.2890625,
+              13.375,
+              11.796875,
+              14.9375,
+              11.84375,
+              16.359375,
+              13.265625,
+              12.53125,
+              11.46875,
+              17.46875,
+              10.7265625,
+              11.828125,
+              16.734375,
+              16.015625,
+              15.734375,
+              17.625,
+              15.234375,
+              16.09375,
+              22.015625,
+              24.4375,
+              22.953125,
+              23.5,
+              24.15625,
+              30.515625,
+              47.65625,
+              36.4375,
+              40.40625,
+              40.0625,
+              50.28125
+            ],
+            "frac_keys_beyond_fp8_range_per_layer": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "frac_values_beyond_fp8_range_per_layer": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "path": "runs/calib/granite-3.3-2b-instruct.pt"
+          },
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "uniform4",
+            "uniform4_kgroup256",
+            "uniform4_kstatic"
+          ]
+        },
+        {
+          "created_utc": "2026-11-17T05:17:26.987053+00:00",
+          "args": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "revision": null,
+            "prompts": "data/prompts/granite_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/granite-3.3-2b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "uniform8",
+              "uniform3",
+              "uniformK4V3",
+              "uniformK4V2",
+              "uniformK3V4"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 4,
+            "hot_bits": 16,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "ibm-granite/granite-3.3-2b-instruct",
+          "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+          "model_shape": {
+            "layers": 40,
+            "q_heads": 32,
+            "kv_heads": 8,
+            "head_dim": 64
+          },
+          "block_size": 16,
+          "eos_ids": [
+            0
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 16,
+            "head_dim": 64,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.710951328277588,
+            "rel_err_vs_unrotated_all_dims": 0.8790925741195679,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "uniform8_kgroup256",
+            "uniform3_kgroup256",
+            "uniformK4V3_kgroup256",
+            "uniformK4V2_kgroup256",
+            "uniformK3V4_kgroup256"
+          ]
+        },
+        {
+          "created_utc": "2026-11-17T06:23:29.800148+00:00",
+          "args": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "revision": null,
+            "prompts": "data/prompts/granite_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/granite-3.3-2b",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "coldkeys_R4",
+              "live"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 3,
+            "hot_bits": 4,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "auto",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "ibm-granite/granite-3.3-2b-instruct",
+          "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+          "model_shape": {
+            "layers": 40,
+            "q_heads": 32,
+            "kv_heads": 8,
+            "head_dim": 64
+          },
+          "block_size": 16,
+          "eos_ids": [
+            0
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 16,
+            "head_dim": 64,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.710951328277588,
+            "rel_err_vs_unrotated_all_dims": 0.8790925741195679,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "torch": "2.9.0",
+            "transformers": "4.57.3"
+          },
+          "variants": [
+            "fp16",
+            "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+            "live_w0.001_c0.02_h4b3_kgroup256"
+          ]
+        }
+      ]
+    }
+  }
+}

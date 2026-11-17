@@ -1,0 +1,133 @@
+{
+  "verdict": "go",
+  "comparison": [
+    {
+      "role": "bar",
+      "variant": "uniformK4V3_kgroup256",
+      "ppl_increase": 0.003048229899488545,
+      "ci_lo": -0.0008449233212112782,
+      "ci_hi": 0.007144338089626183,
+      "rho_meta": 0.24102256028071015,
+      "worst_prompt": "cont-multi_news-d485afe6e98d-4096",
+      "worst_prompt_increase": 0.040567825343155395,
+      "prompts_above_2pct": 6,
+      "prompts": 40
+    },
+    {
+      "role": "uniform4",
+      "variant": "uniform4_kgroup256",
+      "ppl_increase": 0.002001394717786537,
+      "ci_lo": -0.0013858930191027476,
+      "ci_hi": 0.005526655351460722,
+      "rho_meta": 0.27216009626919385,
+      "worst_prompt": "cont-qasper-677dad703988-4096",
+      "worst_prompt_increase": 0.029901628292337,
+      "prompts_above_2pct": 3,
+      "prompts": 40
+    },
+    {
+      "role": "coldkeys",
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.0019192306404504907,
+      "ci_lo": -0.002150866312895196,
+      "ci_hi": 0.006342503399378375,
+      "rho_meta": 0.15934474679650365,
+      "worst_prompt": "cont-qasper-677dad703988-4096",
+      "worst_prompt_increase": 0.038622877541724554,
+      "prompts_above_2pct": 3,
+      "prompts": 40
+    },
+    {
+      "role": "live",
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.003958593007779226,
+      "ci_lo": 2.3320943456610806e-05,
+      "ci_hi": 0.008142619491134446,
+      "rho_meta": 0.16114845094662483,
+      "worst_prompt": "cont-qasper-677dad703988-4096",
+      "worst_prompt_increase": 0.03715758890379628,
+      "prompts_above_2pct": 5,
+      "prompts": 40
+    }
+  ],
+  "bar": {
+    "variant": "uniformK4V3_kgroup256",
+    "rho_meta": 0.24102256028071015,
+    "ppl_increase": 0.003048229899488545
+  },
+  "rho_meta_budget": 0.18076692021053262,
+  "tiered": [
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.0019192306404504907,
+      "ci_hi": 0.006342503399378375,
+      "rho_meta": 0.15934474679650365,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.003958593007779226,
+      "ci_hi": 0.008142619491134446,
+      "rho_meta": 0.16114845094662483,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "passing": [
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.0019192306404504907,
+      "ci_hi": 0.006342503399378375,
+      "rho_meta": 0.15934474679650365,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.003958593007779226,
+      "ci_hi": 0.008142619491134446,
+      "rho_meta": 0.16114845094662483,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "per_codec": {
+    "block": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.33054297624760076,
+      "non_monotone_widths": []
+    },
+    "group256": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.27216009626919385,
+      "non_monotone_widths": []
+    },
+    "static": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.2682679042706334,
+      "non_monotone_widths": []
+    }
+  },
+  "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+}

@@ -1,0 +1,235 @@
+{
+  "verdict": "go",
+  "comparison": [
+    {
+      "role": "bar",
+      "variant": "uniform4_kgroup256",
+      "ppl_increase": 0.005491982387557071,
+      "ci_lo": 0.00247965313569524,
+      "ci_hi": 0.00835968476809794,
+      "rho_meta": 0.26437571227207296,
+      "worst_prompt": "cont-lcc-fbd2ce3fa32e-4096",
+      "worst_prompt_increase": 0.027812971941358677,
+      "prompts_above_2pct": 1,
+      "prompts": 40
+    },
+    {
+      "role": "uniform4",
+      "variant": "uniform4_kgroup256",
+      "ppl_increase": 0.005491982387557071,
+      "ci_lo": 0.00247965313569524,
+      "ci_hi": 0.00835968476809794,
+      "rho_meta": 0.26437571227207296,
+      "worst_prompt": "cont-lcc-fbd2ce3fa32e-4096",
+      "worst_prompt_increase": 0.027812971941358677,
+      "prompts_above_2pct": 1,
+      "prompts": 40
+    },
+    {
+      "role": "coldkeys",
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+      "ppl_increase": 0.009326727389706777,
+      "ci_lo": 0.004587914289423954,
+      "ci_hi": 0.014025788475031713,
+      "rho_meta": 0.12852701051679088,
+      "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+      "worst_prompt_increase": 0.0388175305945333,
+      "prompts_above_2pct": 12,
+      "prompts": 40
+    },
+    {
+      "role": "coldkeys",
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.0047427836096912744,
+      "ci_lo": 0.0014585140967690205,
+      "ci_hi": 0.008019272284791691,
+      "rho_meta": 0.174091999649119,
+      "worst_prompt": "cont-qasper-04174ea6c984-4096",
+      "worst_prompt_increase": 0.0312926122105468,
+      "prompts_above_2pct": 4,
+      "prompts": 40
+    },
+    {
+      "role": "live",
+      "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+      "ppl_increase": 0.016442994663909808,
+      "ci_lo": 0.009933074684673535,
+      "ci_hi": 0.02299393745418678,
+      "rho_meta": 0.1268525567354161,
+      "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+      "worst_prompt_increase": 0.07940226820361773,
+      "prompts_above_2pct": 17,
+      "prompts": 40
+    },
+    {
+      "role": "live",
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.004677037699649196,
+      "ci_lo": 0.0016037238855523778,
+      "ci_hi": 0.0074014464228212545,
+      "rho_meta": 0.17592471216618608,
+      "worst_prompt": "cont-narrativeqa-949abce7e7ab-4096",
+      "worst_prompt_increase": 0.02236694749545287,
+      "prompts_above_2pct": 1,
+      "prompts": 40
+    }
+  ],
+  "bar": {
+    "variant": "uniform4_kgroup256",
+    "rho_meta": 0.26437571227207296,
+    "ppl_increase": 0.005491982387557071
+  },
+  "rho_meta_budget": 0.19828178420405473,
+  "tiered": [
+    {
+      "variant": "promote_R4_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "promote",
+      "decides": false,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.07368934483543775,
+      "ci_hi": 0.08956494089277697,
+      "rho_meta": 0.1322657235524476,
+      "within_limit": false,
+      "under_budget": true
+    },
+    {
+      "variant": "promote_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "promote",
+      "decides": false,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.00799196017875747,
+      "ci_hi": 0.012087763154797659,
+      "rho_meta": 0.17456805049016566,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "twotier_R4_w0.001_h4b2_kgroup256",
+      "kind": "twotier",
+      "decides": false,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.011036888286921715,
+      "ci_hi": 0.015389454164035676,
+      "rho_meta": 0.1515126015213636,
+      "within_limit": false,
+      "under_budget": true
+    },
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.009326727389706777,
+      "ci_hi": 0.014025788475031713,
+      "rho_meta": 0.12852701051679088,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.0047427836096912744,
+      "ci_hi": 0.008019272284791691,
+      "rho_meta": 0.174091999649119,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.016442994663909808,
+      "ci_hi": 0.02299393745418678,
+      "rho_meta": 0.1268525567354161,
+      "within_limit": false,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.004677037699649196,
+      "ci_hi": 0.0074014464228212545,
+      "rho_meta": 0.17592471216618608,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "passing": [
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.009326727389706777,
+      "ci_hi": 0.014025788475031713,
+      "rho_meta": 0.12852701051679088,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.0047427836096912744,
+      "ci_hi": 0.008019272284791691,
+      "rho_meta": 0.174091999649119,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.004677037699649196,
+      "ci_hi": 0.0074014464228212545,
+      "rho_meta": 0.17592471216618608,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "per_codec": {
+    "block": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.32275859225047987,
+      "non_monotone_widths": []
+    },
+    "group256": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.26437571227207296,
+      "non_monotone_widths": []
+    },
+    "static": {
+      "b_star": 8,
+      "uniform_b_star_rho_meta": 0.5095838081813819,
+      "non_monotone_widths": []
+    }
+  },
+  "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+}

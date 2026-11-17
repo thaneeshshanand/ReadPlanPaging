@@ -1,0 +1,183 @@
+{
+  "verdict": "go",
+  "comparison": [
+    {
+      "role": "bar",
+      "variant": "uniform4_kstatic",
+      "ppl_increase": 0.009775973303191429,
+      "ci_lo": 0.004531285189914618,
+      "ci_hi": 0.01530149586818322,
+      "rho_meta": 0.2604835202735125,
+      "worst_prompt": "cont-multi_news-69b0462ff955-4096",
+      "worst_prompt_increase": 0.05979834203250611,
+      "prompts_above_2pct": 10,
+      "prompts": 40
+    },
+    {
+      "role": "uniform4",
+      "variant": "uniform4_kgroup256",
+      "ppl_increase": 0.006130168381266761,
+      "ci_lo": 0.002350795163078215,
+      "ci_hi": 0.00987701572704837,
+      "rho_meta": 0.26437571227207296,
+      "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+      "worst_prompt_increase": 0.03560979784033225,
+      "prompts_above_2pct": 3,
+      "prompts": 40
+    },
+    {
+      "role": "coldkeys",
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+      "ppl_increase": 0.012498703159336407,
+      "ci_lo": 0.007120669325212521,
+      "ci_hi": 0.017875410747845422,
+      "rho_meta": 0.13300942819391545,
+      "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+      "worst_prompt_increase": 0.0454612241456378,
+      "prompts_above_2pct": 11,
+      "prompts": 40
+    },
+    {
+      "role": "coldkeys",
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.006480927879500621,
+      "ci_lo": 0.002517985248125687,
+      "ci_hi": 0.010591419335200806,
+      "rho_meta": 0.17902549004142893,
+      "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+      "worst_prompt_increase": 0.03271662100221939,
+      "prompts_above_2pct": 6,
+      "prompts": 40
+    },
+    {
+      "role": "live",
+      "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+      "ppl_increase": 0.018201029488783944,
+      "ci_lo": 0.010778514878583032,
+      "ci_hi": 0.026036425129435378,
+      "rho_meta": 0.13115650355167596,
+      "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
+      "worst_prompt_increase": 0.06474473045648121,
+      "prompts_above_2pct": 19,
+      "prompts": 40
+    },
+    {
+      "role": "live",
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "ppl_increase": 0.006289591473463284,
+      "ci_lo": 0.0021622556326528547,
+      "ci_hi": 0.01034496809284974,
+      "rho_meta": 0.18118702531954098,
+      "worst_prompt": "cont-gov_report-6b904be52b37-4096",
+      "worst_prompt_increase": 0.03487205088828227,
+      "prompts_above_2pct": 7,
+      "prompts": 40
+    }
+  ],
+  "bar": {
+    "variant": "uniform4_kstatic",
+    "rho_meta": 0.2604835202735125,
+    "ppl_increase": 0.009775973303191429
+  },
+  "rho_meta_budget": 0.19536264020513439,
+  "tiered": [
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.012498703159336407,
+      "ci_hi": 0.017875410747845422,
+      "rho_meta": 0.13300942819391545,
+      "within_limit": false,
+      "under_budget": true
+    },
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.006480927879500621,
+      "ci_hi": 0.010591419335200806,
+      "rho_meta": 0.17902549004142893,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b2_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 2,
+      "kcodec": "group256",
+      "ppl_increase": 0.018201029488783944,
+      "ci_hi": 0.026036425129435378,
+      "rho_meta": 0.13115650355167596,
+      "within_limit": false,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.006289591473463284,
+      "ci_hi": 0.01034496809284974,
+      "rho_meta": 0.18118702531954098,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "passing": [
+    {
+      "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "coldkeys",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.006480927879500621,
+      "ci_hi": 0.010591419335200806,
+      "rho_meta": 0.17902549004142893,
+      "within_limit": true,
+      "under_budget": true
+    },
+    {
+      "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+      "kind": "live",
+      "decides": true,
+      "hot_bits": 4,
+      "warm_bits": 3,
+      "kcodec": "group256",
+      "ppl_increase": 0.006289591473463284,
+      "ci_hi": 0.01034496809284974,
+      "rho_meta": 0.18118702531954098,
+      "within_limit": true,
+      "under_budget": true
+    }
+  ],
+  "per_codec": {
+    "block": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.32275859225047987,
+      "non_monotone_widths": []
+    },
+    "group256": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.26437571227207296,
+      "non_monotone_widths": []
+    },
+    "static": {
+      "b_star": 4,
+      "uniform_b_star_rho_meta": 0.2604835202735125,
+      "non_monotone_widths": []
+    }
+  },
+  "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+}
