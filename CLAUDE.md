@@ -14,7 +14,8 @@ Phase 0, the go/no-go measurement. Nothing has been measured on a real model yet
 ## Environment
 
 - **Local:** MacBook M2 Pro, 32 GB, PyTorch on MPS. Debugging only: a 1-3B model, prompts up to 4K tokens.
-- **Real runs:** an NVIDIA GPU (Northeastern Explorer cluster through Slurm, or a rented 24 GB card). 8B-class model in fp16, prompts of 8K-32K tokens.
+- **Real runs:** one rented NVIDIA GPU over SSH (Explorer is not available for this project), driven by `scripts/phase0_run.sh` (plain bash, resumable, `HF_HOME` from the environment). 8B-class model in fp16, prompts of 8K-32K tokens.
+- **Python env:** new runs use torch 2.15.0 (`requirements.txt`; on the laptop `~/venvs/rpp-torchlatest`, pass `PYTHON=` to the runner). The base conda env stays at torch 2.9.0 so earlier recorded runs remain reproducible; do not upgrade it in place.
 - Every script must run unchanged on `mps` and `cuda`: choose the device at runtime and take model name, context length and output directory from CLI arguments.
 
 ## Working rules

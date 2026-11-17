@@ -562,6 +562,27 @@ def write_meta(path: Path, meta: dict):
     path.write_text(json.dumps(merged, indent=2))
 
 
+def versions() -> dict:
+    import numpy
+    return {"python": sys.version.split()[0], "python_executable": sys.executable, "torch": torch.__version__,
+            "torch_cuda": torch.version.cuda, "transformers": transformers.__version__, "numpy": numpy.__version__}
+
+
+def check_versions(meta_path: Path, now: dict, allow: bool) -> None:
+    """Refuse to mix torch/transformers versions in one output directory (results would not be
+    attributable to a single environment) unless --allow-mixed-versions is given."""
+    if not meta_path.exists():
+        return
+    old = json.loads(meta_path.read_text())
+    seen = {(m.get("versions", {}).get("torch"), m.get("versions", {}).get("transformers"))
+            for m in [old] + old.get("invocations", [])}
+    seen.discard((None, None))
+    mixed = seen - {(now["torch"], now["transformers"])}
+    if mixed and not allow:
+        sys.exit(f"{meta_path.parent} has results from torch/transformers {sorted(mixed)}; this is "
+                 f"{now['torch']}/{now['transformers']}. Use a new --out, or --allow-mixed-versions.")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", required=True)
@@ -592,6 +613,8 @@ def main():
     p.add_argument("--prefill-chunk", type=int, default=2048)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--overwrite", action="store_true")
+    p.add_argument("--allow-mixed-versions", action="store_true",
+                   help="add to an output directory whose earlier invocations used another torch/transformers version")
     p.add_argument("--verify", action="store_true",
                    help="per prompt: check the patched fp16 path against stock SDPA (attention output and teacher-forced "
                         "logits); exits if the attention error exceeds --verify-tol")
@@ -648,8 +671,9 @@ def main():
         "rope_check": rope,
         "key_calibration": calib_meta,
         "code": code_version() | {"tiered_script": str(Path(__file__).resolve())},
-        "versions": {"torch": torch.__version__, "transformers": transformers.__version__},
+        "versions": versions(),
     }
+    check_versions(args.out / "meta.json", meta["versions"], args.allow_mixed_versions)
     write_meta(args.out / "meta.json", meta)
 
     done_path = args.out / "done.jsonl"

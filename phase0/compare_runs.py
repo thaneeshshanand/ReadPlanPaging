@@ -49,6 +49,8 @@ def main():
     ap.add_argument("--labels", nargs=2, default=["a", "b"])
     ap.add_argument("--variants", nargs="*", help="default: every variant present in both")
     ap.add_argument("--out", type=Path)
+    ap.add_argument("--flag-pp", type=float, default=0.3,
+                    help="flag (variant, prompt) rows whose paired increase differs by more than this many points")
     ap.add_argument("--top", type=int, default=10, help="largest per-prompt disagreements to print")
     args = ap.parse_args()
     la, lb = args.labels
@@ -110,6 +112,13 @@ def main():
         print(f"  {r['variant']:44} {r['prompt']:40} {r['increase_diff_pp']:+7.2f} pp  (ppl {100 * r['ppl_rel_diff']:+.2f}%)")
     for r in nonfinite:
         print(f"  NON-FINITE {r['variant']} {r['prompt']}")
+    flagged = [r for r in rows if not math.isfinite(r["increase_diff_pp"]) or abs(r["increase_diff_pp"]) > args.flag_pp]
+    for r in rows:
+        r["flag"] = r in flagged
+    print(f"\nflagged: {len(flagged)} of {len(rows)} rows differ by more than {args.flag_pp} points (or are non-finite)")
+    for r in sorted(flagged, key=lambda r: -abs(r["increase_diff_pp"]) if math.isfinite(r["increase_diff_pp"]) else -1e9):
+        print(f"  FLAG {r['variant']:44} {r['prompt']:40} {100 * r[f'increase_{la}']:7.2f} vs {100 * r[f'increase_{lb}']:7.2f}"
+              f"  ({r['increase_diff_pp']:+.2f} pp)")
     for v in variants:
         d = [abs(r["increase_diff_pp"]) for r in finite if r["variant"] == v]
         f = [abs(r["ppl_rel_diff"]) for r in rows if r["variant"] == v and math.isfinite(r["ppl_rel_diff"])]
@@ -126,6 +135,7 @@ def main():
                     w.writeheader()
                     w.writerows({k: (f"{x:.6g}" if isinstance(x, float) else x) for k, x in r.items()} for r in rs)
         print(f"\nwrote {args.out}/compare_per_prompt.csv and compare_summary.csv")
+    return 0
 
 
 if __name__ == "__main__":
