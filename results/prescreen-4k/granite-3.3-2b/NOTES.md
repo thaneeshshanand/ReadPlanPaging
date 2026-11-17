@@ -43,3 +43,12 @@ but ppl 4.0842 (finite) in run 1. So the failure is not fp16-specific and can be
 the evidence for our results is that it matched eager and fp32 on all 40 prompts under
 --verify, and that e/f/uniform perplexities agree across stages and prompts. Worth
 re-checking a few prompts on CUDA during the cluster verify stage.
+
+## Update 2026-11-17: not reproduced on torch 2.15.0
+
+`tools/mps_decode_repro.py` in a separate venv (~/venvs/rpp-torchlatest: torch 2.15.0,
+transformers 4.57.3, python 3.13.5, macOS 26.6.2, M2 Pro), real prompt, 3 runs per mode:
+check, plain and sync 1.4588 in every run, eager 1.4589, fp32 1.4584; no non-finite step in
+15 runs (`mps_repro_torch2.15.log`). Under torch 2.9.0 (the version every run in this
+directory used) check failed in 3 of 4 runs and fp32 once in 2. So the bug looks fixed
+upstream between 2.9.0 and 2.15.0 (not bisected). The base conda env is still on 2.9.0.

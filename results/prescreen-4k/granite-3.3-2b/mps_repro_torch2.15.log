@@ -1,0 +1,18 @@
+torch 2.15.0  transformers 4.57.3  macOS 26.6.2  arm64  python 3.13.5
+model ibm-granite/granite-3.3-2b-instruct@707f574  prompt cont-gov_report-6de6104b947e-4096: 4096 prompt + 128 decode steps
+  check  run 0: ppl 1.4588  non-finite steps 0
+  check  run 1: ppl 1.4588  non-finite steps 0
+  check  run 2: ppl 1.4588  non-finite steps 0
+  plain  run 0: ppl 1.4588  non-finite steps 0
+  plain  run 1: ppl 1.4588  non-finite steps 0
+  plain  run 2: ppl 1.4588  non-finite steps 0
+  sync   run 0: ppl 1.4588  non-finite steps 0
+  sync   run 1: ppl 1.4588  non-finite steps 0
+  sync   run 2: ppl 1.4588  non-finite steps 0
+  eager  run 0: ppl 1.4589  non-finite steps 0
+  eager  run 1: ppl 1.4589  non-finite steps 0
+  eager  run 2: ppl 1.4589  non-finite steps 0
+  fp32   run 0: ppl 1.4584  non-finite steps 0
+  fp32   run 1: ppl 1.4584  non-finite steps 0
+  fp32   run 2: ppl 1.4584  non-finite steps 0
+exit 0

@@ -30,6 +30,11 @@ LongBench gov_report prompt (--prompts ... --id gov_report-6de6); correct ppl is
   eager   correct in 2 of 2 (1.4578)
   fp32    correct in run 0; run 1 (later in the same process) gave ppl 4.0842, finite
 
+Re-run 2026-11-17 with torch 2.15.0 (latest release; transformers 4.57.3, same macOS and
+machine), 3 runs per mode on the same prompt: no failures in 15 runs (check, plain, sync
+1.4588; eager 1.4589; fp32 1.4584). Under 2.9.0 the check mode failed in 3 of 4 runs, so a
+fix between 2.9.0 and 2.15.0 is likely; check the 2.10-2.15 release notes before filing.
+
 With forward hooks on every module, a correct decode's largest activation anywhere is ~314,
 far below the fp16 range, so the NaNs are not an overflow of real values. Read-only
 instrumentation changes the outcome, and fp32 also fails once: this looks like a race or
