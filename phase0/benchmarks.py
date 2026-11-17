@@ -29,7 +29,9 @@ Continuation sets (--mode continuation) are for teacher-forced perplexity: each 
 is the first C tokens of a long LongBench document (prompt_ids, raw text, no template)
 and the next R tokens of the same document (reference_ids), for tiered.py --reference
 record. Documents are disjoint across records; --calibration K more documents go to
-<out>.calib.jsonl for calibrate_keys.py.
+<out>.calib.jsonl for calibrate_keys.py. --like SET re-tokenises the documents of an
+existing continuation set (and its .calib.jsonl) for another tokenizer: same documents,
+same record ids, cut at the same token counts.
 
 Usage:
     python phase0/benchmarks.py --tokenizer meta-llama/Llama-3.1-8B-Instruct \\
@@ -371,6 +373,33 @@ def continuation_set(tok, files, tasks, lengths, ref_tokens, per_length, n_calib
     return out, calib
 
 
+def retokenise_set(tok, files, records, ref_tokens):
+    """The documents of existing continuation records, re-tokenised: same ids, same task and
+    document, prompt_ids = first n_tokens tokens, reference_ids = the next ref_tokens."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from capture import vocab_sha
+
+    sha, out, texts = vocab_sha(tok), [], {}
+    for r in records:
+        t = r["task"].removeprefix("continuation_")
+        if t not in texts:
+            with open(files["data"] / f"{t}.jsonl") as f:
+                texts[t] = [(d["_id"], d["context"]) for d in map(json.loads, f)]
+        prefix = r["id"].split("-")[2]
+        hits = [c for i, c in texts[t] if i.startswith(prefix)]
+        if len(hits) != 1:
+            raise SystemExit(f"{r['id']}: {len(hits)} documents match")
+        ids = tok(hits[0], add_special_tokens=False)["input_ids"]
+        L = r["n_tokens"]
+        if len(ids) < L + ref_tokens:
+            raise SystemExit(f"{r['id']}: only {len(ids)} tokens with this tokenizer")
+        out.append(r | {"prompt_ids": ids[:L], "reference_ids": ids[L : L + ref_tokens], "max_new_tokens": ref_tokens,
+                        "tokenizer": tok.name_or_path, "tokenizer_vocab_sha": sha, "retokenised_from": r.get("tokenizer")})
+    return out
+
+
 # --------------------------------------------------------------------------- build
 
 
@@ -415,13 +444,26 @@ def main():
     p.add_argument("--per-length", type=int, default=40, help="continuation: records per context length")
     p.add_argument("--calibration", type=int, default=4, help="continuation: extra documents for key calibration")
     p.add_argument("--cont-tasks", nargs="*", default=DEFAULT_CONT, help="continuation: LongBench tasks to take documents from")
+    p.add_argument("--like", type=Path, default=None,
+                   help="continuation: re-tokenise this existing set's documents (and its .calib.jsonl) instead of sampling")
     args = p.parse_args()
     from transformers import AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(args.tokenizer)
     rng = random.Random(args.seed)
     out, report = [], []
-    if args.mode == "continuation":
+    if args.mode == "continuation" and args.like:
+        load = lambda q: [json.loads(l) for l in q.read_text().splitlines() if l.strip()]
+        out = retokenise_set(tok, longbench_files(), load(args.like), args.reference_tokens)
+        report.append((f"re-tokenised from {args.like.name}", len(out)))
+        cin = args.like.with_suffix(".calib.jsonl")
+        if cin.exists():
+            calib = retokenise_set(tok, longbench_files(), load(cin), args.reference_tokens)
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.with_suffix(".calib.jsonl").write_text("".join(json.dumps(r) + "\n" for r in calib))
+            report.append((f"calibration -> {args.out.with_suffix('.calib.jsonl').name}", len(calib)))
+        args.longbench_tasks, args.ruler_tasks = [], []
+    elif args.mode == "continuation":
         sets, calib = continuation_set(tok, longbench_files(), args.cont_tasks, args.context_tokens,
                                        args.reference_tokens, args.per_length, args.calibration, rng)
         for L in args.context_tokens:
