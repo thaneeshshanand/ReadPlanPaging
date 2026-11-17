@@ -341,3 +341,17 @@ def test_by_length_groups_prompts():
     assert [(r["context_k"], r["prompts"]) for r in out] == [(8, 2), (31, 1)]
     assert out[0]["hot"] == pytest.approx(0.2) and out[0]["task_score"] == 1.0
     assert out[0]["ppl_increase"] == pytest.approx(np.expm1(1 / 256))
+
+
+def test_decision_comparison_rows():
+    base = [_row("fp16", "fp16", 0.0, 1.0, bits=16, kc=""), _row("u4", "uniform", 0.002, 0.32, 4),
+            _row("u4g", "uniform", 0.002, 0.27, 4, kc="group256"),
+            {**_row("k4v3", "uniform", 0.003, 0.24, 4, kc="group256"), "vbits": 3},
+            _row("e", "coldkeys", 0.002, 0.16, bits=3, kc="group256", hot=4),
+            _row("f", "live", 0.004, 0.16, bits=3, kc="group256", hot=4)]
+    for r in base:
+        r.update(worst_prompt=f"{r['variant']}-p", ppl_increase_prompt_max=0.03, prompts_above_2pct=2, ppl_increase_ci_lo=0.0)
+    d = analyze_d.decide(base)
+    roles = {c["role"]: c["variant"] for c in d["comparison"]}
+    assert roles == {"bar": "k4v3", "uniform4": "u4g", "coldkeys": "e", "live": "f"}  # group256 4-bit, not the asymmetric bar
+    assert all(c["prompts_above_2pct"] == 2 and c["worst_prompt"].endswith("-p") for c in d["comparison"])

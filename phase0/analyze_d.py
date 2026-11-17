@@ -139,7 +139,9 @@ def bootstrap_ppl_ci(nll_v, nll_f, tokens, n=BOOTSTRAP, seed=0):
     return float(lo), float(hi)
 
 
-WIDTHS = (16, 8, 4, 3, 2)  # uniform widths; 16 is fp16
+WIDTHS = (16, 8, 4, 3, 2)
+WORST_LIMIT = 0.02  # per-prompt perplexity increase counted in prompts_above_2pct (reported, does not decide)
+COMPARE_KCODEC = "group256"  # key codec of the ladders: the uniform 4-bit row shown beside e and f  # uniform widths; 16 is fp16
 
 
 def decide(rows: list[dict]) -> dict:
@@ -182,8 +184,17 @@ def decide(rows: list[dict]) -> dict:
         verdict = "no-go so far: every tiered variant fails on quality"
     else:
         verdict = "no-go so far: tiered variants within 1% read more than the budget"
+    u4 = [r for r in uniform if r["kind"] == "uniform" and r["bits"] == 4 and r.get("vbits", 4) in (4, "", None)]
+    u4 = next((r for r in u4 if r["kcodec"] == COMPARE_KCODEC), u4[0] if u4 else None)
+    cmp_rows = [("bar", bar), ("uniform4", u4)] + [(r["kind"], r) for r in tiered]
+    comparison = [{"role": role, "variant": r["variant"], "ppl_increase": r["ppl_increase"],
+                   "ci_lo": r.get("ppl_increase_ci_lo"), "ci_hi": r.get("ppl_increase_ci_hi"), "rho_meta": r["rho_meta"],
+                   "worst_prompt": r.get("worst_prompt"), "worst_prompt_increase": r.get("ppl_increase_prompt_max"),
+                   "prompts_above_2pct": r.get("prompts_above_2pct"), "prompts": r.get("prompts")}
+                  for role, r in cmp_rows if r is not None]
     return {
         "verdict": verdict,
+        "comparison": comparison,
         "bar": bar and {"variant": bar["variant"], "rho_meta": bar["rho_meta"], "ppl_increase": bar["ppl_increase"]},
         "rho_meta_budget": budget,
         "tiered": [fmt(r) for r in rows if r["kind"] in TIERED_KINDS],
@@ -338,6 +349,8 @@ def main():
             "ppl_increase_ci_lo": ci[0], "ppl_increase_ci_hi": ci[1],
             "ppl_increase_prompt_median": float(np.median(pp)) if pp else float("nan"),
             "ppl_increase_prompt_max": max(pp) if pp else float("nan"),
+            "worst_prompt": max(mine, key=lambda r: r["ppl_increase"])["prompt"] if mine else "",
+            "prompts_above_2pct": sum(x > WORST_LIMIT for x in pp),
             "tf_agree": a["agree"] / a["tokens"],
             "attn_err_mean": float(err_layers.mean()),
             "attn_err_max_layer": float(err_layers.max()),
@@ -392,7 +405,7 @@ def main():
         "git_commit": commit, "decision": decision, "bootstrap_resamples": BOOTSTRAP, "fp16_ppl": fp_ppl, "run_meta": metas}, indent=2))
 
     print(f"{n_prompts} prompts, {int(fp['tokens'])} reference tokens per variant, fp16 ppl {fp_ppl:.4f} -> {args.out}")
-    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13}"
+    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13} {'worst%':>6} {'n>2%':>4}"
     print(hdr)
     for r in rows:
         rc = r["recall_cold"] if r["kind"] != "live" else r["plan_recall_hot"]
@@ -403,7 +416,8 @@ def main():
         print(f"{label:44} {ci:>22} {r['tf_agree']:6.3f} {r['attn_err_mean']:6.4f} {r['rho_codes']:6.3f} "
               f"{r['rho_meta']:6.3f} {r['hot_effective']:6.3f} {r['fixup_rate']:6.4f} {rc if rc == '' else format(rc, '.2f'):>5} "
               f"{r['promotion_precision'] if r['promotion_precision'] == '' else format(r['promotion_precision'], '.2f'):>5} "
-              f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f}")
+              f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f} "
+              f"{100 * r['ppl_increase_prompt_max']:6.2f} {r['prompts_above_2pct']:4d}")
     print(f"\nDecision: {decision['verdict']}")
     if decision["bar"]:
         print(f"  bar: {decision['bar']['variant']} rho_meta={decision['bar']['rho_meta']:.3f}; budget rho_meta <= {decision['rho_meta_budget']:.3f}")
@@ -411,6 +425,11 @@ def main():
         print(f"  {t['variant']:48} dPPL={100 * t['ppl_increase']:6.2f}% (CI hi {100 * t['ci_hi']:5.2f}%) rho_meta={t['rho_meta']:.3f}"
               f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}"
               f"{'' if t['decides'] else ' (c/d: reported, does not decide)'}")
+    print(f"\n  {'role':9} {'variant':44} {'dPPL% [95% CI]':>22} {'rhoM':>6} {'worst%':>6} {'n>2%':>4}  worst prompt")
+    for c in decision["comparison"]:
+        ci = f"{100 * c['ppl_increase']:6.2f} [{100 * c['ci_lo']:5.2f},{100 * c['ci_hi']:5.2f}]" if c["ci_lo"] is not None else f"{100 * c['ppl_increase']:6.2f}"
+        print(f"  {c['role']:9} {c['variant']:44} {ci:>22} {c['rho_meta']:6.3f} {100 * c['worst_prompt_increase']:6.2f} "
+              f"{c['prompts_above_2pct']:4d}  {c['worst_prompt']}")
     for kc, e in decision["per_codec"].items():
         print(f"  b*[{kc}]={e['b_star']} (uniform rho_meta {e['uniform_b_star_rho_meta']})"
               + (f" NON-MONOTONE {e['non_monotone_widths']}" if e["non_monotone_widths"] else ""))
