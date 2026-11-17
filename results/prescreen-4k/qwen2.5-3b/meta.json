@@ -1,10 +1,10 @@
 {
-  "created_utc": "2026-11-17T18:16:30.899803+00:00",
+  "created_utc": "2026-11-17T21:10:55.236824+00:00",
   "runs": [
     "runs/prescreen-4k/qwen2.5-3b"
   ],
   "prompts": 40,
-  "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+  "git_commit": "91d016259eca9a892b3a5ac1ba143a657e75e485",
   "decision": {
     "verdict": "go",
     "comparison": [
@@ -17,6 +17,8 @@
         "rho_meta": 0.2604835202735125,
         "worst_prompt": "cont-multi_news-69b0462ff955-4096",
         "worst_prompt_increase": 0.05979834203250611,
+        "best_prompt": "cont-lcc-fbd2ce3fa32e-4096",
+        "best_prompt_increase": -0.024810101980628718,
         "prompts_above_2pct": 10,
         "prompts": 40
       },
@@ -29,6 +31,8 @@
         "rho_meta": 0.26437571227207296,
         "worst_prompt": "cont-gov_report-6b904be52b37-4096",
         "worst_prompt_increase": 0.03560979784033225,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.029028155533216138,
         "prompts_above_2pct": 3,
         "prompts": 40
       },
@@ -41,6 +45,8 @@
         "rho_meta": 0.13300942819391545,
         "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
         "worst_prompt_increase": 0.0454612241456378,
+        "best_prompt": "cont-gov_report-6de6104b947e-4096",
+        "best_prompt_increase": -0.029184519656450303,
         "prompts_above_2pct": 11,
         "prompts": 40
       },
@@ -53,6 +59,8 @@
         "rho_meta": 0.17902549004142893,
         "worst_prompt": "cont-gov_report-6b904be52b37-4096",
         "worst_prompt_increase": 0.03271662100221939,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.02638096522127653,
         "prompts_above_2pct": 6,
         "prompts": 40
       },
@@ -65,6 +73,8 @@
         "rho_meta": 0.13115650355167596,
         "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
         "worst_prompt_increase": 0.06474473045648121,
+        "best_prompt": "cont-gov_report-6de6104b947e-4096",
+        "best_prompt_increase": -0.033553428225123305,
         "prompts_above_2pct": 19,
         "prompts": 40
       },
@@ -77,6 +87,8 @@
         "rho_meta": 0.18118702531954098,
         "worst_prompt": "cont-gov_report-6b904be52b37-4096",
         "worst_prompt_increase": 0.03487205088828227,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.02950897297432964,
         "prompts_above_2pct": 7,
         "prompts": 40
       }

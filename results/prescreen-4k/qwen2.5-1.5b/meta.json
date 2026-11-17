@@ -1,10 +1,10 @@
 {
-  "created_utc": "2026-11-17T18:16:29.424474+00:00",
+  "created_utc": "2026-11-17T21:10:53.692282+00:00",
   "runs": [
     "runs/prescreen-4k/qwen2.5-1.5b"
   ],
   "prompts": 40,
-  "git_commit": "8e9095838271a39abad94bd1464601040be621d6",
+  "git_commit": "91d016259eca9a892b3a5ac1ba143a657e75e485",
   "decision": {
     "verdict": "go",
     "comparison": [
@@ -17,6 +17,8 @@
         "rho_meta": 0.26437571227207296,
         "worst_prompt": "cont-lcc-fbd2ce3fa32e-4096",
         "worst_prompt_increase": 0.027812971941358677,
+        "best_prompt": "cont-narrativeqa-e1514d530bec-4096",
+        "best_prompt_increase": -0.015952015029222277,
         "prompts_above_2pct": 1,
         "prompts": 40
       },
@@ -29,6 +31,8 @@
         "rho_meta": 0.26437571227207296,
         "worst_prompt": "cont-lcc-fbd2ce3fa32e-4096",
         "worst_prompt_increase": 0.027812971941358677,
+        "best_prompt": "cont-narrativeqa-e1514d530bec-4096",
+        "best_prompt_increase": -0.015952015029222277,
         "prompts_above_2pct": 1,
         "prompts": 40
       },
@@ -41,6 +45,8 @@
         "rho_meta": 0.12852701051679088,
         "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
         "worst_prompt_increase": 0.0388175305945333,
+        "best_prompt": "cont-multi_news-78303e2cb9fc-4096",
+        "best_prompt_increase": -0.022506124150947326,
         "prompts_above_2pct": 12,
         "prompts": 40
       },
@@ -53,6 +59,8 @@
         "rho_meta": 0.174091999649119,
         "worst_prompt": "cont-qasper-04174ea6c984-4096",
         "worst_prompt_increase": 0.0312926122105468,
+        "best_prompt": "cont-multi_news-78303e2cb9fc-4096",
+        "best_prompt_increase": -0.022395884007509803,
         "prompts_above_2pct": 4,
         "prompts": 40
       },
@@ -65,6 +73,8 @@
         "rho_meta": 0.1268525567354161,
         "worst_prompt": "cont-qmsum-4ad5fe6d35e7-4096",
         "worst_prompt_increase": 0.07940226820361773,
+        "best_prompt": "cont-gov_report-ad1e97265c41-4096",
+        "best_prompt_increase": -0.018919638140662665,
         "prompts_above_2pct": 17,
         "prompts": 40
       },
@@ -77,6 +87,8 @@
         "rho_meta": 0.17592471216618608,
         "worst_prompt": "cont-narrativeqa-949abce7e7ab-4096",
         "worst_prompt_increase": 0.02236694749545287,
+        "best_prompt": "cont-multi_news-78303e2cb9fc-4096",
+        "best_prompt_increase": -0.019547713324758353,
         "prompts_above_2pct": 1,
         "prompts": 40
       }

@@ -7,9 +7,12 @@ files stay in `runs/` and are ignored.
 reference tokens each, MPS. Produced by `phase0/analyze_d.py --runs runs/prescreen-4k/<model>`.
 
 - `summary.csv`: one row per variant (perplexity increase with 95% bootstrap CI, rho, tiers,
-  fix-ups, COLD-mass tail, worst prompt and prompts above +2%).
+  fix-ups, COLD-mass tail, worst and best prompt, prompts above +2%, flag counts).
 - `decision.json`: the frozen go rule of `docs/PHASE0.md` applied to `summary.csv`; its
   `comparison` block puts the bar and uniform 4-bit (group256) beside variants e and f.
+- `per_prompt.csv`: per prompt and variant NLL sums and paired increase over fp16 (the
+  reference for `phase0/compare_runs.py`, e.g. the CUDA `STAGE=replicate4k` rerun).
+- `flags.csv`: per-prompt rows with a non-finite value or |perplexity increase| > 10%.
 - `by_length.csv`: HOT/WARM/COLD fractions by context length.
 - `meta.json`: analysis config, git commit, and each run's config, seed and model revision
   (paths made relative to the repo).
