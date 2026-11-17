@@ -1,0 +1,6 @@
+variant,kind,context_k,prompts,tokens,hot,warm,cold,ppl_increase,task_score,free_agree
+coldkeys_R4_w0.001_c0.02_h4b3_kgroup256,coldkeys,4,40,5120,0.041212,0.489195,0.469593,0.00110624,,
+fp16,fp16,4,40,5120,1,0,0,0,,
+live_w0.001_c0.02_h4b3_kgroup256,live,4,40,5120,0.0317638,0.502193,0.466043,0.00273472,,
+uniform4_kgroup256,uniform,4,40,5120,0.00359885,0.996401,0,0.0013852,,
+uniformK4V3_kgroup256,uniform,4,40,5120,0.00359885,0.996401,0,0.00291255,,

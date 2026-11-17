@@ -1,0 +1,335 @@
+A = new: runs/prescreen-4k/granite-3.3-2b-torch2.15/analysis
+B = ref: results/prescreen-4k/granite-3.3-2b
+200 paired (variant, prompt) rows; prompts only in new: 0, only in ref: 0
+
+per prompt: perplexity under new / ref and paired increase over fp16 (percent)
+
+  fp16
+    prompt                                      ppl new    ppl ref     rel  inc new  inc ref  diff pp
+    cont-gov_report-14fff932d702-4096            6.5585     6.5562   0.04%     0.00     0.00     0.00
+    cont-gov_report-2c913d116590-4096            6.2285     6.2269   0.03%     0.00     0.00     0.00
+    cont-gov_report-679f8b9b9a02-4096            3.1543     3.1524   0.06%     0.00     0.00     0.00
+    cont-gov_report-6b904be52b37-4096            1.5799     1.5799   0.00%     0.00     0.00     0.00
+    cont-gov_report-6de6104b947e-4096            1.4582     1.4583  -0.01%     0.00     0.00     0.00
+    cont-gov_report-a2695a1634a2-4096            5.0950     5.0951  -0.00%     0.00     0.00     0.00
+    cont-gov_report-ad1e97265c41-4096            3.0572     3.0576  -0.01%     0.00     0.00     0.00
+    cont-lcc-7e20f7645ae4-4096                   1.3805     1.3808  -0.02%     0.00     0.00     0.00
+    cont-lcc-997526c4ebbb-4096                   2.0360     2.0357   0.01%     0.00     0.00     0.00
+    cont-lcc-9d639220f2ae-4096                   2.9441     2.9463  -0.08%     0.00     0.00     0.00
+    cont-lcc-cf8e0d5f2adf-4096                   1.9558     1.9557   0.01%     0.00     0.00     0.00
+    cont-lcc-ea081b4223c2-4096                   1.8846     1.8850  -0.02%     0.00     0.00     0.00
+    cont-lcc-fbd2ce3fa32e-4096                   2.1916     2.1912   0.02%     0.00     0.00     0.00
+    cont-multi_news-0e285d4f4c44-4096            4.0064     4.0053   0.03%     0.00     0.00     0.00
+    cont-multi_news-348357789b1c-4096            3.6087     3.6071   0.04%     0.00     0.00     0.00
+    cont-multi_news-69b0462ff955-4096            4.5873     4.5902  -0.06%     0.00     0.00     0.00
+    cont-multi_news-78303e2cb9fc-4096            7.1403     7.1415  -0.02%     0.00     0.00     0.00
+    cont-multi_news-8b4c90dab64e-4096            4.6826     4.6786   0.09%     0.00     0.00     0.00
+    cont-multi_news-9f364b72d418-4096            7.5765     7.5704   0.08%     0.00     0.00     0.00
+    cont-multi_news-d485afe6e98d-4096            8.6336     8.6345  -0.01%     0.00     0.00     0.00
+    cont-narrativeqa-33a9901ae9f8-4096           8.7829     8.7801   0.03%     0.00     0.00     0.00
+    cont-narrativeqa-379ccfa193f4-4096           8.5260     8.5220   0.05%     0.00     0.00     0.00
+    cont-narrativeqa-8317d375904e-4096          13.0703    13.0775  -0.05%     0.00     0.00     0.00
+    cont-narrativeqa-949abce7e7ab-4096           7.6706     7.6700   0.01%     0.00     0.00     0.00
+    cont-narrativeqa-cb33b635d4a1-4096           6.1699     6.1757  -0.09%     0.00     0.00     0.00
+    cont-narrativeqa-e1514d530bec-4096           9.4878     9.4998  -0.13%     0.00     0.00     0.00
+    cont-narrativeqa-e76cb4d216f0-4096           2.5056     2.5056   0.00%     0.00     0.00     0.00
+    cont-qasper-04174ea6c984-4096                6.0816     6.0810   0.01%     0.00     0.00     0.00
+    cont-qasper-677dad703988-4096                5.0713     5.0676   0.07%     0.00     0.00     0.00
+    cont-qasper-679cbfcf05ce-4096                5.0280     5.0299  -0.04%     0.00     0.00     0.00
+    cont-qasper-8fa5af6a36dd-4096                4.6587     4.6571   0.03%     0.00     0.00     0.00
+    cont-qasper-c509e3bda123-4096                7.5240     7.5271  -0.04%     0.00     0.00     0.00
+    cont-qasper-db4afd55783a-4096                5.6192     5.6209  -0.03%     0.00     0.00     0.00
+    cont-qmsum-31341465a9a8-4096                 6.8370     6.8334   0.05%     0.00     0.00     0.00
+    cont-qmsum-4ad5fe6d35e7-4096                15.1059    15.1073  -0.01%     0.00     0.00     0.00
+    cont-qmsum-56aa2c5a8976-4096                 7.8619     7.8605   0.02%     0.00     0.00     0.00
+    cont-qmsum-712f5d33fc0c-4096                 6.2104     6.2103   0.00%     0.00     0.00     0.00
+    cont-qmsum-8476fcbe8bf6-4096                 8.6690     8.6687   0.00%     0.00     0.00     0.00
+    cont-qmsum-a9db92bf70da-4096                 8.7337     8.7484  -0.17%     0.00     0.00     0.00
+    cont-qmsum-f0060bb96ccf-4096                 5.7675     5.7654   0.04%     0.00     0.00     0.00
+
+  uniformK4V3_kgroup256
+    prompt                                      ppl new    ppl ref     rel  inc new  inc ref  diff pp
+    cont-gov_report-14fff932d702-4096            6.5914     6.5887   0.04%     0.50     0.50     0.01
+    cont-gov_report-2c913d116590-4096            6.2668     6.2745  -0.12%     0.62     0.76    -0.15
+    cont-gov_report-679f8b9b9a02-4096            3.2539     3.2374   0.51%     3.16     2.70     0.46
+    cont-gov_report-6b904be52b37-4096            1.5729     1.5785  -0.35%    -0.44    -0.09    -0.35
+    cont-gov_report-6de6104b947e-4096            1.4674     1.4739  -0.44%     0.63     1.07    -0.44
+    cont-gov_report-a2695a1634a2-4096            5.0956     5.1126  -0.33%     0.01     0.34    -0.33
+    cont-gov_report-ad1e97265c41-4096            3.0103     3.0032   0.24%    -1.53    -1.78     0.25
+    cont-lcc-7e20f7645ae4-4096                   1.3830     1.3827   0.02%     0.18     0.14     0.04
+    cont-lcc-997526c4ebbb-4096                   2.0520     2.0499   0.10%     0.79     0.70     0.09
+    cont-lcc-9d639220f2ae-4096                   2.9361     2.9265   0.33%    -0.27    -0.67     0.40
+    cont-lcc-cf8e0d5f2adf-4096                   1.9637     1.9700  -0.32%     0.40     0.73    -0.33
+    cont-lcc-ea081b4223c2-4096                   1.8783     1.8887  -0.55%    -0.33     0.20    -0.53
+    cont-lcc-fbd2ce3fa32e-4096                   2.1921     2.1851   0.32%     0.02    -0.28     0.30
+    cont-multi_news-0e285d4f4c44-4096            3.9477     3.9155   0.82%    -1.46    -2.24     0.78
+    cont-multi_news-348357789b1c-4096            3.6814     3.6256   1.54%     2.02     0.51     1.50
+    cont-multi_news-69b0462ff955-4096            4.6695     4.6829  -0.29%     1.79     2.02    -0.23
+    cont-multi_news-78303e2cb9fc-4096            6.9918     7.0068  -0.21%    -2.08    -1.89    -0.19
+    cont-multi_news-8b4c90dab64e-4096            4.6586     4.6750  -0.35%    -0.51    -0.08    -0.44
+    cont-multi_news-9f364b72d418-4096            7.5950     7.6238  -0.38%     0.24     0.71    -0.46
+    cont-multi_news-d485afe6e98d-4096            8.9499     8.9848  -0.39%     3.66     4.06    -0.39
+    cont-narrativeqa-33a9901ae9f8-4096           8.8543     8.8605  -0.07%     0.81     0.92    -0.10
+    cont-narrativeqa-379ccfa193f4-4096           8.4773     8.5235  -0.54%    -0.57     0.02    -0.59
+    cont-narrativeqa-8317d375904e-4096          12.9858    13.0073  -0.16%    -0.65    -0.54    -0.11
+    cont-narrativeqa-949abce7e7ab-4096           7.6044     7.5957   0.11%    -0.86    -0.97     0.11
+    cont-narrativeqa-cb33b635d4a1-4096           6.1194     6.0986   0.34%    -0.82    -1.25     0.43
+    cont-narrativeqa-e1514d530bec-4096           9.3198     9.3844  -0.69%    -1.77    -1.21    -0.56
+    cont-narrativeqa-e76cb4d216f0-4096           2.4734     2.5067  -1.33%    -1.28     0.04    -1.33
+    cont-qasper-04174ea6c984-4096                6.1282     6.1324  -0.07%     0.77     0.85    -0.08
+    cont-qasper-677dad703988-4096                5.1289     5.1718  -0.83%     1.14     2.05    -0.92
+    cont-qasper-679cbfcf05ce-4096                5.1505     5.1356   0.29%     2.44     2.10     0.34
+    cont-qasper-8fa5af6a36dd-4096                4.6065     4.6217  -0.33%    -1.12    -0.76    -0.36
+    cont-qasper-c509e3bda123-4096                7.5589     7.4503   1.46%     0.46    -1.02     1.48
+    cont-qasper-db4afd55783a-4096                5.6489     5.6220   0.48%     0.53     0.02     0.51
+    cont-qmsum-31341465a9a8-4096                 6.8754     6.8613   0.20%     0.56     0.41     0.15
+    cont-qmsum-4ad5fe6d35e7-4096                15.3915    15.4156  -0.16%     1.89     2.04    -0.15
+    cont-qmsum-56aa2c5a8976-4096                 8.0235     8.0101   0.17%     2.06     1.90     0.15
+    cont-qmsum-712f5d33fc0c-4096                 6.3207     6.3021   0.30%     1.78     1.48     0.30
+    cont-qmsum-8476fcbe8bf6-4096                 8.5220     8.5964  -0.87%    -1.70    -0.83    -0.86
+    cont-qmsum-a9db92bf70da-4096                 8.7833     8.7109   0.83%     0.57    -0.43     1.00
+    cont-qmsum-f0060bb96ccf-4096                 5.7895     5.7829   0.11%     0.38     0.30     0.08
+
+  uniform4_kgroup256
+    prompt                                      ppl new    ppl ref     rel  inc new  inc ref  diff pp
+    cont-gov_report-14fff932d702-4096            6.5523     6.5581  -0.09%    -0.09     0.03    -0.12
+    cont-gov_report-2c913d116590-4096            6.2468     6.2682  -0.34%     0.29     0.66    -0.37
+    cont-gov_report-679f8b9b9a02-4096            3.1948     3.1983  -0.11%     1.28     1.46    -0.17
+    cont-gov_report-6b904be52b37-4096            1.5795     1.5815  -0.13%    -0.03     0.10    -0.13
+    cont-gov_report-6de6104b947e-4096            1.4656     1.4677  -0.14%     0.50     0.64    -0.14
+    cont-gov_report-a2695a1634a2-4096            5.0433     5.0549  -0.23%    -1.01    -0.79    -0.23
+    cont-gov_report-ad1e97265c41-4096            3.0263     3.0408  -0.48%    -1.01    -0.55    -0.46
+    cont-lcc-7e20f7645ae4-4096                   1.3738     1.3755  -0.12%    -0.49    -0.38    -0.11
+    cont-lcc-997526c4ebbb-4096                   2.0276     2.0311  -0.17%    -0.41    -0.22    -0.18
+    cont-lcc-9d639220f2ae-4096                   2.9302     2.9443  -0.48%    -0.47    -0.07    -0.40
+    cont-lcc-cf8e0d5f2adf-4096                   1.9627     1.9693  -0.33%     0.35     0.70    -0.34
+    cont-lcc-ea081b4223c2-4096                   1.8788     1.8757   0.17%    -0.31    -0.49     0.19
+    cont-lcc-fbd2ce3fa32e-4096                   2.1794     2.1810  -0.07%    -0.56    -0.47    -0.09
+    cont-multi_news-0e285d4f4c44-4096            3.8932     3.9178  -0.63%    -2.83    -2.18    -0.64
+    cont-multi_news-348357789b1c-4096            3.6991     3.6306   1.89%     2.51     0.65     1.85
+    cont-multi_news-69b0462ff955-4096            4.5705     4.5771  -0.15%    -0.37    -0.29    -0.08
+    cont-multi_news-78303e2cb9fc-4096            7.1504     7.2084  -0.80%     0.14     0.94    -0.80
+    cont-multi_news-8b4c90dab64e-4096            4.7881     4.7587   0.62%     2.25     1.71     0.54
+    cont-multi_news-9f364b72d418-4096            7.6528     7.6959  -0.56%     1.01     1.66    -0.65
+    cont-multi_news-d485afe6e98d-4096            8.7159     8.7847  -0.78%     0.95     1.74    -0.79
+    cont-narrativeqa-33a9901ae9f8-4096           8.8735     8.9013  -0.31%     1.03     1.38    -0.35
+    cont-narrativeqa-379ccfa193f4-4096           8.5112     8.4560   0.65%    -0.17    -0.77     0.60
+    cont-narrativeqa-8317d375904e-4096          13.0034    13.1051  -0.78%    -0.51     0.21    -0.72
+    cont-narrativeqa-949abce7e7ab-4096           7.6214     7.6420  -0.27%    -0.64    -0.37    -0.27
+    cont-narrativeqa-cb33b635d4a1-4096           6.1001     6.0829   0.28%    -1.13    -1.50     0.37
+    cont-narrativeqa-e1514d530bec-4096           9.4935     9.5075  -0.15%     0.06     0.08    -0.02
+    cont-narrativeqa-e76cb4d216f0-4096           2.4857     2.4911  -0.22%    -0.79    -0.58    -0.22
+    cont-qasper-04174ea6c984-4096                6.0159     6.0342  -0.30%    -1.08    -0.77    -0.31
+    cont-qasper-677dad703988-4096                5.2250     5.2192   0.11%     3.03     2.99     0.04
+    cont-qasper-679cbfcf05ce-4096                5.1358     5.1553  -0.38%     2.14     2.49    -0.35
+    cont-qasper-8fa5af6a36dd-4096                4.6001     4.5782   0.48%    -1.26    -1.69     0.44
+    cont-qasper-c509e3bda123-4096                7.4795     7.4073   0.97%    -0.59    -1.59     1.00
+    cont-qasper-db4afd55783a-4096                5.6479     5.6323   0.28%     0.51     0.20     0.31
+    cont-qmsum-31341465a9a8-4096                 6.8260     6.7788   0.70%    -0.16    -0.80     0.64
+    cont-qmsum-4ad5fe6d35e7-4096                15.0455    15.0778  -0.21%    -0.40    -0.19    -0.20
+    cont-qmsum-56aa2c5a8976-4096                 7.9786     8.0220  -0.54%     1.48     2.05    -0.57
+    cont-qmsum-712f5d33fc0c-4096                 6.2828     6.2917  -0.14%     1.17     1.31    -0.14
+    cont-qmsum-8476fcbe8bf6-4096                 8.6638     8.6363   0.32%    -0.06    -0.37     0.31
+    cont-qmsum-a9db92bf70da-4096                 8.8673     8.8824  -0.17%     1.53     1.53    -0.00
+    cont-qmsum-f0060bb96ccf-4096                 5.7634     5.7551   0.14%    -0.07    -0.18     0.11
+
+  coldkeys_R4_w0.001_c0.02_h4b3_kgroup256
+    prompt                                      ppl new    ppl ref     rel  inc new  inc ref  diff pp
+    cont-gov_report-14fff932d702-4096            6.4714     6.4947  -0.36%    -1.33    -0.94    -0.39
+    cont-gov_report-2c913d116590-4096            6.2447     6.2294   0.25%     0.26     0.04     0.22
+    cont-gov_report-679f8b9b9a02-4096            3.1638     3.1758  -0.38%     0.30     0.74    -0.44
+    cont-gov_report-6b904be52b37-4096            1.5799     1.5878  -0.49%     0.00     0.50    -0.50
+    cont-gov_report-6de6104b947e-4096            1.4779     1.4854  -0.51%     1.35     1.86    -0.51
+    cont-gov_report-a2695a1634a2-4096            5.0340     5.0438  -0.19%    -1.20    -1.01    -0.19
+    cont-gov_report-ad1e97265c41-4096            3.0454     3.0510  -0.19%    -0.39    -0.21    -0.17
+    cont-lcc-7e20f7645ae4-4096                   1.3746     1.3714   0.23%    -0.43    -0.68     0.25
+    cont-lcc-997526c4ebbb-4096                   2.0260     2.0180   0.39%    -0.49    -0.87     0.38
+    cont-lcc-9d639220f2ae-4096                   2.9192     2.9038   0.53%    -0.85    -1.44     0.60
+    cont-lcc-cf8e0d5f2adf-4096                   1.9663     1.9710  -0.24%     0.54     0.79    -0.25
+    cont-lcc-ea081b4223c2-4096                   1.8698     1.8741  -0.23%    -0.78    -0.58    -0.21
+    cont-lcc-fbd2ce3fa32e-4096                   2.2063     2.1997   0.30%     0.67     0.38     0.28
+    cont-multi_news-0e285d4f4c44-4096            3.8940     3.8886   0.14%    -2.80    -2.91     0.11
+    cont-multi_news-348357789b1c-4096            3.6676     3.6561   0.31%     1.63     1.36     0.27
+    cont-multi_news-69b0462ff955-4096            4.5723     4.5838  -0.25%    -0.33    -0.14    -0.19
+    cont-multi_news-78303e2cb9fc-4096            7.1647     7.1887  -0.33%     0.34     0.66    -0.32
+    cont-multi_news-8b4c90dab64e-4096            4.7672     4.7559   0.24%     1.81     1.65     0.16
+    cont-multi_news-9f364b72d418-4096            7.7213     7.7210   0.00%     1.91     1.99    -0.08
+    cont-multi_news-d485afe6e98d-4096            8.7869     8.8401  -0.60%     1.77     2.38    -0.61
+    cont-narrativeqa-33a9901ae9f8-4096           8.8766     8.9084  -0.36%     1.07     1.46    -0.39
+    cont-narrativeqa-379ccfa193f4-4096           8.6306     8.5700   0.71%     1.23     0.56     0.66
+    cont-narrativeqa-8317d375904e-4096          13.0039    13.0562  -0.40%    -0.51    -0.16    -0.35
+    cont-narrativeqa-949abce7e7ab-4096           7.6400     7.6519  -0.16%    -0.40    -0.24    -0.16
+    cont-narrativeqa-cb33b635d4a1-4096           6.0687     6.0901  -0.35%    -1.64    -1.39    -0.25
+    cont-narrativeqa-e1514d530bec-4096           9.5381     9.6032  -0.68%     0.53     1.09    -0.56
+    cont-narrativeqa-e76cb4d216f0-4096           2.4814     2.4901  -0.35%    -0.96    -0.62    -0.34
+    cont-qasper-04174ea6c984-4096                6.0013     6.0432  -0.69%    -1.32    -0.62    -0.70
+    cont-qasper-677dad703988-4096                5.2780     5.2634   0.28%     4.08     3.86     0.22
+    cont-qasper-679cbfcf05ce-4096                5.0876     5.0918  -0.08%     1.18     1.23    -0.05
+    cont-qasper-8fa5af6a36dd-4096                4.5665     4.5462   0.45%    -1.98    -2.38     0.40
+    cont-qasper-c509e3bda123-4096                7.3880     7.3899  -0.03%    -1.81    -1.82     0.01
+    cont-qasper-db4afd55783a-4096                5.6915     5.6680   0.41%     1.29     0.84     0.45
+    cont-qmsum-31341465a9a8-4096                 6.7782     6.7845  -0.09%    -0.86    -0.72    -0.14
+    cont-qmsum-4ad5fe6d35e7-4096                14.9389    14.9330   0.04%    -1.10    -1.15     0.05
+    cont-qmsum-56aa2c5a8976-4096                 7.9876     8.0326  -0.56%     1.60     2.19    -0.59
+    cont-qmsum-712f5d33fc0c-4096                 6.2787     6.3050  -0.42%     1.10     1.52    -0.42
+    cont-qmsum-8476fcbe8bf6-4096                 8.6452     8.6773  -0.37%    -0.28     0.10    -0.37
+    cont-qmsum-a9db92bf70da-4096                 8.9100     8.8460   0.72%     2.02     1.12     0.90
+    cont-qmsum-f0060bb96ccf-4096                 5.7421     5.7422  -0.00%    -0.44    -0.40    -0.04
+
+  live_w0.001_c0.02_h4b3_kgroup256
+    prompt                                      ppl new    ppl ref     rel  inc new  inc ref  diff pp
+    cont-gov_report-14fff932d702-4096            6.5104     6.5752  -0.98%    -0.73     0.29    -1.02
+    cont-gov_report-2c913d116590-4096            6.2786     6.2633   0.24%     0.81     0.58     0.22
+    cont-gov_report-679f8b9b9a02-4096            3.2101     3.2332  -0.71%     1.77     2.56    -0.80
+    cont-gov_report-6b904be52b37-4096            1.5759     1.5853  -0.60%    -0.26     0.35    -0.60
+    cont-gov_report-6de6104b947e-4096            1.4700     1.4756  -0.37%     0.81     1.18    -0.37
+    cont-gov_report-a2695a1634a2-4096            5.0555     5.0461   0.19%    -0.78    -0.96     0.18
+    cont-gov_report-ad1e97265c41-4096            3.0256     3.0378  -0.40%    -1.03    -0.64    -0.39
+    cont-lcc-7e20f7645ae4-4096                   1.3730     1.3771  -0.30%    -0.54    -0.26    -0.28
+    cont-lcc-997526c4ebbb-4096                   2.0300     2.0270   0.15%    -0.29    -0.43     0.14
+    cont-lcc-9d639220f2ae-4096                   2.9207     2.9193   0.05%    -0.79    -0.92     0.12
+    cont-lcc-cf8e0d5f2adf-4096                   1.9640     1.9682  -0.22%     0.42     0.64    -0.22
+    cont-lcc-ea081b4223c2-4096                   1.8816     1.8804   0.06%    -0.16    -0.24     0.08
+    cont-lcc-fbd2ce3fa32e-4096                   2.1898     2.1942  -0.20%    -0.08     0.13    -0.22
+    cont-multi_news-0e285d4f4c44-4096            3.9008     3.9027  -0.05%    -2.64    -2.56    -0.07
+    cont-multi_news-348357789b1c-4096            3.7016     3.6436   1.59%     2.58     1.01     1.56
+    cont-multi_news-69b0462ff955-4096            4.5652     4.5533   0.26%    -0.48    -0.80     0.32
+    cont-multi_news-78303e2cb9fc-4096            7.1482     7.1939  -0.64%     0.11     0.73    -0.62
+    cont-multi_news-8b4c90dab64e-4096            4.7665     4.7669  -0.01%     1.79     1.89    -0.10
+    cont-multi_news-9f364b72d418-4096            7.7056     7.6821   0.31%     1.70     1.48     0.23
+    cont-multi_news-d485afe6e98d-4096            8.7798     8.8003  -0.23%     1.69     1.92    -0.23
+    cont-narrativeqa-33a9901ae9f8-4096           8.8931     8.9147  -0.24%     1.25     1.53    -0.28
+    cont-narrativeqa-379ccfa193f4-4096           8.5521     8.5255   0.31%     0.31     0.04     0.26
+    cont-narrativeqa-8317d375904e-4096          13.1702    13.1335   0.28%     0.76     0.43     0.34
+    cont-narrativeqa-949abce7e7ab-4096           7.6648     7.6648  -0.00%    -0.08    -0.07    -0.01
+    cont-narrativeqa-cb33b635d4a1-4096           6.0537     6.0889  -0.58%    -1.88    -1.41    -0.48
+    cont-narrativeqa-e1514d530bec-4096           9.4966     9.4843   0.13%     0.09    -0.16     0.26
+    cont-narrativeqa-e76cb4d216f0-4096           2.4740     2.4931  -0.76%    -1.26    -0.50    -0.76
+    cont-qasper-04174ea6c984-4096                6.0080     6.0125  -0.07%    -1.21    -1.13    -0.08
+    cont-qasper-677dad703988-4096                5.2691     5.2559   0.25%     3.90     3.72     0.19
+    cont-qasper-679cbfcf05ce-4096                5.0924     5.1437  -1.00%     1.28     2.26    -0.98
+    cont-qasper-8fa5af6a36dd-4096                4.5770     4.5640   0.29%    -1.75    -2.00     0.25
+    cont-qasper-c509e3bda123-4096                7.4564     7.4803  -0.32%    -0.90    -0.62    -0.28
+    cont-qasper-db4afd55783a-4096                5.6912     5.7143  -0.40%     1.28     1.66    -0.38
+    cont-qmsum-31341465a9a8-4096                 6.8071     6.8069   0.00%    -0.44    -0.39    -0.05
+    cont-qmsum-4ad5fe6d35e7-4096                15.0926    15.0962  -0.02%    -0.09    -0.07    -0.02
+    cont-qmsum-56aa2c5a8976-4096                 8.0833     8.0989  -0.19%     2.82     3.03    -0.22
+    cont-qmsum-712f5d33fc0c-4096                 6.2639     6.3008  -0.59%     0.86     1.46    -0.59
+    cont-qmsum-8476fcbe8bf6-4096                 8.6729     8.6706   0.03%     0.05     0.02     0.02
+    cont-qmsum-a9db92bf70da-4096                 8.9158     8.9350  -0.21%     2.09     2.13    -0.05
+    cont-qmsum-f0060bb96ccf-4096                 5.7859     5.7829   0.05%     0.32     0.30     0.02
+
+summary rows side by side
+  variant                                                    dPPL% [95% CI]   rhoM  agree HOTeff   WARM   COLD worst%  best% n>2%   n
+  fp16                                         new       0.00 [ 0.00, 0.00]  1.000  0.646  1.000  0.000  0.000   0.00   0.00    0  40
+                                               ref       0.00 [ 0.00, 0.00]  1.000  0.646  1.000  0.000  0.000   0.00   0.00    0  40
+  uniformK4V3_kgroup256                        new       0.29 [-0.09, 0.70]  0.241  0.645  0.004  0.996  0.000   3.66  -2.08    5  40
+                                               ref       0.30 [-0.08, 0.71]  0.241  0.645  0.004  0.996  0.000   4.06  -2.24    6  40
+  uniform4_kgroup256                           new       0.14 [-0.19, 0.50]  0.272  0.647  0.004  0.996  0.000   3.03  -2.83    4  40
+                                               ref       0.20 [-0.14, 0.55]  0.272  0.645  0.004  0.996  0.000   2.99  -2.18    3  40
+  coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      new       0.11 [-0.29, 0.54]  0.159  0.645  0.041  0.499  0.471   4.08  -2.80    2  40
+                                               ref       0.19 [-0.22, 0.63]  0.159  0.645  0.041  0.500  0.470   3.86  -2.91    3  40
+  live_w0.001_c0.02_h4b3_kgroup256             new       0.27 [-0.11, 0.68]  0.161  0.646  0.032  0.502  0.466   3.90  -2.64    4  40
+                                               ref       0.40 [ 0.00, 0.81]  0.161  0.646  0.032  0.502  0.466   3.72  -2.56    5  40
+
+largest per-prompt disagreements in paired increase (0 non-finite):
+  uniform4_kgroup256                           cont-multi_news-348357789b1c-4096          +1.85 pp  (ppl +1.89%)
+  live_w0.001_c0.02_h4b3_kgroup256             cont-multi_news-348357789b1c-4096          +1.56 pp  (ppl +1.59%)
+  uniformK4V3_kgroup256                        cont-multi_news-348357789b1c-4096          +1.50 pp  (ppl +1.54%)
+  uniformK4V3_kgroup256                        cont-qasper-c509e3bda123-4096              +1.48 pp  (ppl +1.46%)
+  uniformK4V3_kgroup256                        cont-narrativeqa-e76cb4d216f0-4096         -1.33 pp  (ppl -1.33%)
+  live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-14fff932d702-4096          -1.02 pp  (ppl -0.98%)
+  uniform4_kgroup256                           cont-qasper-c509e3bda123-4096              +1.00 pp  (ppl +0.97%)
+  uniformK4V3_kgroup256                        cont-qmsum-a9db92bf70da-4096               +1.00 pp  (ppl +0.83%)
+  live_w0.001_c0.02_h4b3_kgroup256             cont-qasper-679cbfcf05ce-4096              -0.98 pp  (ppl -1.00%)
+  uniformK4V3_kgroup256                        cont-qasper-677dad703988-4096              -0.92 pp  (ppl -0.83%)
+
+flagged: 81 of 200 rows differ by more than 0.3 points (or are non-finite)
+  FLAG uniform4_kgroup256                           cont-multi_news-348357789b1c-4096           2.51 vs    0.65  (+1.85 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-multi_news-348357789b1c-4096           2.58 vs    1.01  (+1.56 pp)
+  FLAG uniformK4V3_kgroup256                        cont-multi_news-348357789b1c-4096           2.02 vs    0.51  (+1.50 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qasper-c509e3bda123-4096               0.46 vs   -1.02  (+1.48 pp)
+  FLAG uniformK4V3_kgroup256                        cont-narrativeqa-e76cb4d216f0-4096         -1.28 vs    0.04  (-1.33 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-14fff932d702-4096          -0.73 vs    0.29  (-1.02 pp)
+  FLAG uniform4_kgroup256                           cont-qasper-c509e3bda123-4096              -0.59 vs   -1.59  (+1.00 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qmsum-a9db92bf70da-4096                0.57 vs   -0.43  (+1.00 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-qasper-679cbfcf05ce-4096               1.28 vs    2.26  (-0.98 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qasper-677dad703988-4096               1.14 vs    2.05  (-0.92 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qmsum-a9db92bf70da-4096                2.02 vs    1.12  (+0.90 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qmsum-8476fcbe8bf6-4096               -1.70 vs   -0.83  (-0.86 pp)
+  FLAG uniform4_kgroup256                           cont-multi_news-78303e2cb9fc-4096           0.14 vs    0.94  (-0.80 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-679f8b9b9a02-4096           1.77 vs    2.56  (-0.80 pp)
+  FLAG uniform4_kgroup256                           cont-multi_news-d485afe6e98d-4096           0.95 vs    1.74  (-0.79 pp)
+  FLAG uniformK4V3_kgroup256                        cont-multi_news-0e285d4f4c44-4096          -1.46 vs   -2.24  (+0.78 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-narrativeqa-e76cb4d216f0-4096         -1.26 vs   -0.50  (-0.76 pp)
+  FLAG uniform4_kgroup256                           cont-narrativeqa-8317d375904e-4096         -0.51 vs    0.21  (-0.72 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qasper-04174ea6c984-4096              -1.32 vs   -0.62  (-0.70 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-narrativeqa-379ccfa193f4-4096          1.23 vs    0.56  (+0.66 pp)
+  FLAG uniform4_kgroup256                           cont-multi_news-9f364b72d418-4096           1.01 vs    1.66  (-0.65 pp)
+  FLAG uniform4_kgroup256                           cont-multi_news-0e285d4f4c44-4096          -2.83 vs   -2.18  (-0.64 pp)
+  FLAG uniform4_kgroup256                           cont-qmsum-31341465a9a8-4096               -0.16 vs   -0.80  (+0.64 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-multi_news-78303e2cb9fc-4096           0.11 vs    0.73  (-0.62 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-multi_news-d485afe6e98d-4096           1.77 vs    2.38  (-0.61 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-6b904be52b37-4096          -0.26 vs    0.35  (-0.60 pp)
+  FLAG uniform4_kgroup256                           cont-narrativeqa-379ccfa193f4-4096         -0.17 vs   -0.77  (+0.60 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-lcc-9d639220f2ae-4096                 -0.85 vs   -1.44  (+0.60 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-qmsum-712f5d33fc0c-4096                0.86 vs    1.46  (-0.59 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qmsum-56aa2c5a8976-4096                1.60 vs    2.19  (-0.59 pp)
+  FLAG uniformK4V3_kgroup256                        cont-narrativeqa-379ccfa193f4-4096         -0.57 vs    0.02  (-0.59 pp)
+  FLAG uniform4_kgroup256                           cont-qmsum-56aa2c5a8976-4096                1.48 vs    2.05  (-0.57 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-narrativeqa-e1514d530bec-4096          0.53 vs    1.09  (-0.56 pp)
+  FLAG uniformK4V3_kgroup256                        cont-narrativeqa-e1514d530bec-4096         -1.77 vs   -1.21  (-0.56 pp)
+  FLAG uniform4_kgroup256                           cont-multi_news-8b4c90dab64e-4096           2.25 vs    1.71  (+0.54 pp)
+  FLAG uniformK4V3_kgroup256                        cont-lcc-ea081b4223c2-4096                 -0.33 vs    0.20  (-0.53 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-gov_report-6de6104b947e-4096           1.35 vs    1.86  (-0.51 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qasper-db4afd55783a-4096               0.53 vs    0.02  (+0.51 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-gov_report-6b904be52b37-4096           0.00 vs    0.50  (-0.50 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-narrativeqa-cb33b635d4a1-4096         -1.88 vs   -1.41  (-0.48 pp)
+  FLAG uniformK4V3_kgroup256                        cont-multi_news-9f364b72d418-4096           0.24 vs    0.71  (-0.46 pp)
+  FLAG uniform4_kgroup256                           cont-gov_report-ad1e97265c41-4096          -1.01 vs   -0.55  (-0.46 pp)
+  FLAG uniformK4V3_kgroup256                        cont-gov_report-679f8b9b9a02-4096           3.16 vs    2.70  (+0.46 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qasper-db4afd55783a-4096               1.29 vs    0.84  (+0.45 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-gov_report-679f8b9b9a02-4096           0.30 vs    0.74  (-0.44 pp)
+  FLAG uniformK4V3_kgroup256                        cont-gov_report-6de6104b947e-4096           0.63 vs    1.07  (-0.44 pp)
+  FLAG uniform4_kgroup256                           cont-qasper-8fa5af6a36dd-4096              -1.26 vs   -1.69  (+0.44 pp)
+  FLAG uniformK4V3_kgroup256                        cont-multi_news-8b4c90dab64e-4096          -0.51 vs   -0.08  (-0.44 pp)
+  FLAG uniformK4V3_kgroup256                        cont-narrativeqa-cb33b635d4a1-4096         -0.82 vs   -1.25  (+0.43 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qmsum-712f5d33fc0c-4096                1.10 vs    1.52  (-0.42 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qasper-8fa5af6a36dd-4096              -1.98 vs   -2.38  (+0.40 pp)
+  FLAG uniform4_kgroup256                           cont-lcc-9d639220f2ae-4096                 -0.47 vs   -0.07  (-0.40 pp)
+  FLAG uniformK4V3_kgroup256                        cont-lcc-9d639220f2ae-4096                 -0.27 vs   -0.67  (+0.40 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-narrativeqa-33a9901ae9f8-4096          1.07 vs    1.46  (-0.39 pp)
+  FLAG uniformK4V3_kgroup256                        cont-multi_news-d485afe6e98d-4096           3.66 vs    4.06  (-0.39 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-gov_report-14fff932d702-4096          -1.33 vs   -0.94  (-0.39 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-ad1e97265c41-4096          -1.03 vs   -0.64  (-0.39 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-qasper-db4afd55783a-4096               1.28 vs    1.66  (-0.38 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-lcc-997526c4ebbb-4096                 -0.49 vs   -0.87  (+0.38 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-qmsum-8476fcbe8bf6-4096               -0.28 vs    0.10  (-0.37 pp)
+  FLAG uniform4_kgroup256                           cont-narrativeqa-cb33b635d4a1-4096         -1.13 vs   -1.50  (+0.37 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-gov_report-6de6104b947e-4096           0.81 vs    1.18  (-0.37 pp)
+  FLAG uniform4_kgroup256                           cont-gov_report-2c913d116590-4096           0.29 vs    0.66  (-0.37 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qasper-8fa5af6a36dd-4096              -1.12 vs   -0.76  (-0.36 pp)
+  FLAG uniformK4V3_kgroup256                        cont-gov_report-6b904be52b37-4096          -0.44 vs   -0.09  (-0.35 pp)
+  FLAG uniform4_kgroup256                           cont-qasper-679cbfcf05ce-4096               2.14 vs    2.49  (-0.35 pp)
+  FLAG uniform4_kgroup256                           cont-narrativeqa-33a9901ae9f8-4096          1.03 vs    1.38  (-0.35 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-narrativeqa-8317d375904e-4096         -0.51 vs   -0.16  (-0.35 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-narrativeqa-e76cb4d216f0-4096         -0.96 vs   -0.62  (-0.34 pp)
+  FLAG uniform4_kgroup256                           cont-lcc-cf8e0d5f2adf-4096                  0.35 vs    0.70  (-0.34 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qasper-679cbfcf05ce-4096               2.44 vs    2.10  (+0.34 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-narrativeqa-8317d375904e-4096          0.76 vs    0.43  (+0.34 pp)
+  FLAG uniformK4V3_kgroup256                        cont-gov_report-a2695a1634a2-4096           0.01 vs    0.34  (-0.33 pp)
+  FLAG uniformK4V3_kgroup256                        cont-lcc-cf8e0d5f2adf-4096                  0.40 vs    0.73  (-0.33 pp)
+  FLAG live_w0.001_c0.02_h4b3_kgroup256             cont-multi_news-69b0462ff955-4096          -0.48 vs   -0.80  (+0.32 pp)
+  FLAG coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      cont-multi_news-78303e2cb9fc-4096           0.34 vs    0.66  (-0.32 pp)
+  FLAG uniform4_kgroup256                           cont-qmsum-8476fcbe8bf6-4096               -0.06 vs   -0.37  (+0.31 pp)
+  FLAG uniform4_kgroup256                           cont-qasper-04174ea6c984-4096              -1.08 vs   -0.77  (-0.31 pp)
+  FLAG uniform4_kgroup256                           cont-qasper-db4afd55783a-4096               0.51 vs    0.20  (+0.31 pp)
+  FLAG uniformK4V3_kgroup256                        cont-lcc-fbd2ce3fa32e-4096                  0.02 vs   -0.28  (+0.30 pp)
+  FLAG uniformK4V3_kgroup256                        cont-qmsum-712f5d33fc0c-4096                1.78 vs    1.48  (+0.30 pp)
+  fp16                                         median |diff| 0.000 pp, max 0.000 pp; median |ppl rel diff| 0.031%
+  uniformK4V3_kgroup256                        median |diff| 0.354 pp, max 1.502 pp; median |ppl rel diff| 0.329%
+  uniform4_kgroup256                           median |diff| 0.313 pp, max 1.854 pp; median |ppl rel diff| 0.303%
+  coldkeys_R4_w0.001_c0.02_h4b3_kgroup256      median |diff| 0.318 pp, max 0.902 pp; median |ppl rel diff| 0.346%
+  live_w0.001_c0.02_h4b3_kgroup256             median |diff| 0.247 pp, max 1.564 pp; median |ppl rel diff| 0.251%
+
+wrote runs/prescreen-4k/granite-3.3-2b-torch2.15/analysis/compare_per_prompt.csv and compare_summary.csv

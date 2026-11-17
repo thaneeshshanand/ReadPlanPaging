@@ -1,0 +1,472 @@
+{
+  "created_utc": "2026-11-17T23:13:15.802080+00:00",
+  "runs": [
+    "runs/prescreen-4k/granite-3.3-2b-torch2.15"
+  ],
+  "prompts": 40,
+  "git_commit": "b1f5b5db5f65785e471cc7c2ba128f3be574a4eb",
+  "decision": {
+    "verdict": "go",
+    "comparison": [
+      {
+        "role": "bar",
+        "variant": "uniformK4V3_kgroup256",
+        "ppl_increase": 0.0029125487619923876,
+        "ci_lo": -0.0009420038465194664,
+        "ci_hi": 0.006962758974885473,
+        "rho_meta": 0.24102256028071015,
+        "worst_prompt": "cont-multi_news-d485afe6e98d-4096",
+        "worst_prompt_increase": 0.03662521319066192,
+        "best_prompt": "cont-multi_news-78303e2cb9fc-4096",
+        "best_prompt_increase": -0.02080324134002176,
+        "prompts_above_2pct": 5,
+        "prompts": 40
+      },
+      {
+        "role": "uniform4",
+        "variant": "uniform4_kgroup256",
+        "ppl_increase": 0.001385201876172927,
+        "ci_lo": -0.0019373257374909435,
+        "ci_hi": 0.004989584103841855,
+        "rho_meta": 0.27216009626919385,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.03030366830037079,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.028258815453788055,
+        "prompts_above_2pct": 4,
+        "prompts": 40
+      },
+      {
+        "role": "coldkeys",
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.001106241832404363,
+        "ci_lo": -0.002925649443733291,
+        "ci_hi": 0.005356621334870353,
+        "rho_meta": 0.15933774829139635,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.0407733887918591,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.028041010764892516,
+        "prompts_above_2pct": 2,
+        "prompts": 40
+      },
+      {
+        "role": "live",
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "ppl_increase": 0.0027347197636718996,
+        "ci_lo": -0.00109625007747629,
+        "ci_hi": 0.006831928915608232,
+        "rho_meta": 0.1611449957534585,
+        "worst_prompt": "cont-qasper-677dad703988-4096",
+        "worst_prompt_increase": 0.03902014719254843,
+        "best_prompt": "cont-multi_news-0e285d4f4c44-4096",
+        "best_prompt_increase": -0.026356939587125705,
+        "prompts_above_2pct": 4,
+        "prompts": 40
+      }
+    ],
+    "bar": {
+      "variant": "uniformK4V3_kgroup256",
+      "rho_meta": 0.24102256028071015,
+      "ppl_increase": 0.0029125487619923876
+    },
+    "rho_meta_budget": 0.18076692021053262,
+    "tiered": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.001106241832404363,
+        "ci_hi": 0.005356621334870353,
+        "rho_meta": 0.15933774829139635,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.0027347197636718996,
+        "ci_hi": 0.006831928915608232,
+        "rho_meta": 0.1611449957534585,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "passing": [
+      {
+        "variant": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "coldkeys",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.001106241832404363,
+        "ci_hi": 0.005356621334870353,
+        "rho_meta": 0.15933774829139635,
+        "within_limit": true,
+        "under_budget": true
+      },
+      {
+        "variant": "live_w0.001_c0.02_h4b3_kgroup256",
+        "kind": "live",
+        "decides": true,
+        "hot_bits": 4,
+        "warm_bits": 3,
+        "kcodec": "group256",
+        "ppl_increase": 0.0027347197636718996,
+        "ci_hi": 0.006831928915608232,
+        "rho_meta": 0.1611449957534585,
+        "within_limit": true,
+        "under_budget": true
+      }
+    ],
+    "per_codec": {
+      "group256": {
+        "b_star": 4,
+        "uniform_b_star_rho_meta": 0.27216009626919385,
+        "non_monotone_widths": []
+      }
+    },
+    "rule": "bar = cheapest uniform cache (fp16, uniform 8/4/3/2-bit or asymmetric K/V, any key codec) with ppl increase <= 1%, bytes with metadata; go if an e/f variant has ppl increase <= 1% and rho_meta <= 0.75 x bar; fp8 is emulation only and excluded"
+  },
+  "bootstrap_resamples": 2000,
+  "fp16_ppl": 4.875613924271592,
+  "run_meta": {
+    "runs/prescreen-4k/granite-3.3-2b-torch2.15": {
+      "created_utc": "2026-11-17T22:13:34.420973+00:00",
+      "args": {
+        "model": "ibm-granite/granite-3.3-2b-instruct",
+        "revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+        "prompts": "data/prompts/granite_cont_4k.jsonl",
+        "out": "runs/prescreen-4k/granite-3.3-2b-torch2.15",
+        "max_context": 4096,
+        "max_new_tokens": 129,
+        "variants": [
+          "coldkeys_R4",
+          "live"
+        ],
+        "eps_w": [
+          0.001
+        ],
+        "eps_c": [
+          0.02
+        ],
+        "warm_bits": 3,
+        "hot_bits": 4,
+        "scan_codec": [
+          "minmax"
+        ],
+        "key_codecs": [
+          "group256"
+        ],
+        "key_calib": null,
+        "shard": null,
+        "reference": "record",
+        "free_run": false,
+        "limit": null,
+        "device": "mps",
+        "dtype": "float16",
+        "chat_template": "auto",
+        "prefill_chunk": 2048,
+        "seed": 0,
+        "overwrite": false,
+        "allow_mixed_versions": false,
+        "verify": false,
+        "verify_tol": 0.01
+      },
+      "variants": [
+        {
+          "kind": "fp16",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "block",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "fp16"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": 3,
+          "name": "uniformK4V3_kgroup256"
+        },
+        {
+          "kind": "uniform",
+          "bits": 4,
+          "R": 1,
+          "eps_w": 0.0,
+          "eps_c": 0.0,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 16,
+          "vbits": null,
+          "name": "uniform4_kgroup256"
+        },
+        {
+          "kind": "coldkeys",
+          "bits": 3,
+          "R": 4,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
+        },
+        {
+          "kind": "live",
+          "bits": 3,
+          "R": 1,
+          "eps_w": 0.001,
+          "eps_c": 0.02,
+          "scan_bits": 1,
+          "scan_codec": "minmax",
+          "kcodec": "group256",
+          "hot_bits": 4,
+          "vbits": null,
+          "name": "live_w0.001_c0.02_h4b3_kgroup256"
+        }
+      ],
+      "seed": 0,
+      "device": "mps",
+      "device_name": null,
+      "model": "ibm-granite/granite-3.3-2b-instruct",
+      "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+      "model_shape": {
+        "layers": 40,
+        "q_heads": 32,
+        "kv_heads": 8,
+        "head_dim": 64
+      },
+      "block_size": 16,
+      "eos_ids": [
+        0
+      ],
+      "rope_check": {
+        "start_pos": 4096,
+        "rotated_dims_compared": 16,
+        "head_dim": 64,
+        "rel_err_vs_rotated": 0.0,
+        "rel_err_vs_unrotated": 1.710951328277588,
+        "rel_err_vs_unrotated_all_dims": 0.8790926337242126,
+        "post_rope": true
+      },
+      "key_calibration": null,
+      "code": {
+        "script": "phase0/capture.py",
+        "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+        "git_commit": "b1f5b5db5f65785e471cc7c2ba128f3be574a4eb",
+        "git_dirty": false,
+        "tiered_script": "phase0/tiered.py"
+      },
+      "versions": {
+        "python": "3.13.5",
+        "python_executable": "~/venvs/rpp-torchlatest/bin/python",
+        "torch": "2.15.0",
+        "torch_cuda": null,
+        "transformers": "4.57.3",
+        "numpy": "2.5.5"
+      },
+      "invocations": [
+        {
+          "created_utc": "2026-11-17T21:34:34.687956+00:00",
+          "args": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+            "prompts": "data/prompts/granite_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/granite-3.3-2b-torch2.15",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "fp16",
+              "uniformK4V3",
+              "uniform4"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 4,
+            "hot_bits": 16,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "mps",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "allow_mixed_versions": false,
+            "verify": true,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "ibm-granite/granite-3.3-2b-instruct",
+          "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+          "model_shape": {
+            "layers": 40,
+            "q_heads": 32,
+            "kv_heads": 8,
+            "head_dim": 64
+          },
+          "block_size": 16,
+          "eos_ids": [
+            0
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 16,
+            "head_dim": 64,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.710951328277588,
+            "rel_err_vs_unrotated_all_dims": 0.8790926337242126,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "ab1d9ebc8ae4f810b39020da4eb969973b5bfbfc",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "python": "3.13.5",
+            "python_executable": "~/venvs/rpp-torchlatest/bin/python",
+            "torch": "2.15.0",
+            "torch_cuda": null,
+            "transformers": "4.57.3",
+            "numpy": "2.5.5"
+          },
+          "variants": [
+            "fp16",
+            "uniformK4V3_kgroup256",
+            "uniform4_kgroup256"
+          ]
+        },
+        {
+          "created_utc": "2026-11-17T22:13:34.420973+00:00",
+          "args": {
+            "model": "ibm-granite/granite-3.3-2b-instruct",
+            "revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+            "prompts": "data/prompts/granite_cont_4k.jsonl",
+            "out": "runs/prescreen-4k/granite-3.3-2b-torch2.15",
+            "max_context": 4096,
+            "max_new_tokens": 129,
+            "variants": [
+              "coldkeys_R4",
+              "live"
+            ],
+            "eps_w": [
+              0.001
+            ],
+            "eps_c": [
+              0.02
+            ],
+            "warm_bits": 3,
+            "hot_bits": 4,
+            "scan_codec": [
+              "minmax"
+            ],
+            "key_codecs": [
+              "group256"
+            ],
+            "key_calib": null,
+            "shard": null,
+            "reference": "record",
+            "free_run": false,
+            "limit": null,
+            "device": "mps",
+            "dtype": "float16",
+            "chat_template": "auto",
+            "prefill_chunk": 2048,
+            "seed": 0,
+            "overwrite": false,
+            "allow_mixed_versions": false,
+            "verify": false,
+            "verify_tol": 0.01
+          },
+          "seed": 0,
+          "device": "mps",
+          "device_name": null,
+          "model": "ibm-granite/granite-3.3-2b-instruct",
+          "model_revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+          "model_shape": {
+            "layers": 40,
+            "q_heads": 32,
+            "kv_heads": 8,
+            "head_dim": 64
+          },
+          "block_size": 16,
+          "eos_ids": [
+            0
+          ],
+          "rope_check": {
+            "start_pos": 4096,
+            "rotated_dims_compared": 16,
+            "head_dim": 64,
+            "rel_err_vs_rotated": 0.0,
+            "rel_err_vs_unrotated": 1.710951328277588,
+            "rel_err_vs_unrotated_all_dims": 0.8790926337242126,
+            "post_rope": true
+          },
+          "key_calibration": null,
+          "code": {
+            "script": "phase0/capture.py",
+            "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+            "git_commit": "b1f5b5db5f65785e471cc7c2ba128f3be574a4eb",
+            "git_dirty": false,
+            "tiered_script": "phase0/tiered.py"
+          },
+          "versions": {
+            "python": "3.13.5",
+            "python_executable": "~/venvs/rpp-torchlatest/bin/python",
+            "torch": "2.15.0",
+            "torch_cuda": null,
+            "transformers": "4.57.3",
+            "numpy": "2.5.5"
+          },
+          "variants": [
+            "fp16",
+            "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256",
+            "live_w0.001_c0.02_h4b3_kgroup256"
+          ]
+        }
+      ]
+    }
+  }
+}
