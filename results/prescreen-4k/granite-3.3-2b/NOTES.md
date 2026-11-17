@@ -20,7 +20,7 @@ chunked stock SDPA and agrees with eager. Granite's attention scale is 1/64, not
 
 ## Update 2026-11-17: not an fp16 overflow, and intermittent
 
-Bisected with `tools/mps_fp16_decode_repro.py` (same prompt, stock sdpa, fp16):
+Bisected with `tools/mps_decode_repro.py` (same prompt, stock sdpa, fp16):
 
 - Plain stock decode is intermittent: NaN in 2 runs, correct (ppl 1.4585) in 2 later runs.
 - Wrapping F.scaled_dot_product_attention with a read-only `torch.isfinite(out).all()`
@@ -35,3 +35,11 @@ are garbage, not large, and read-only instrumentation decides whether they appea
 an MPS race or buffer-reuse bug; not reduced below the full model. The conclusion for our
 results is unchanged: every variant decodes through the patched path, which matched eager
 and fp32 on all 40 prompts.
+
+Full repro run (`mps_repro.log`, 2 runs per mode in one process, real prompt): check NaN in
+1 of 2, plain correct 2 of 2, sync 2 of 2, eager 2 of 2 (1.4578), fp32 correct in run 0
+but ppl 4.0842 (finite) in run 1. So the failure is not fp16-specific and can be silent
+(finite but wrong). Our fp32-attention patched path is not proven immune by construction;
+the evidence for our results is that it matched eager and fp32 on all 40 prompts under
+--verify, and that e/f/uniform perplexities agree across stages and prompts. Worth
+re-checking a few prompts on CUDA during the cluster verify stage.
