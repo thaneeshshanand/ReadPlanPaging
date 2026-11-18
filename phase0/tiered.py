@@ -583,6 +583,16 @@ def check_versions(meta_path: Path, now: dict, allow: bool) -> None:
                  f"{now['torch']}/{now['transformers']}. Use a new --out, or --allow-mixed-versions.")
 
 
+def select_prompts(prompts, n_tokens=None, shard=None, limit=None):
+    """Filter by context length (records' n_tokens), then shard i/n, then keep the first `limit`."""
+    if n_tokens:
+        prompts = [r for r in prompts if int(r.get("n_tokens", -1)) in set(n_tokens)]
+    if shard:
+        i, n = (int(x) for x in shard.split("/"))
+        prompts = prompts[i::n]
+    return prompts[:limit] if limit else prompts
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", required=True)
@@ -606,7 +616,9 @@ def main():
     p.add_argument("--reference", default="greedy", choices=["greedy", "answer", "record"],
                    help="teacher-forced reference: fp16 greedy output, the record's first answer, or its reference_ids")
     p.add_argument("--free-run", action="store_true", help="also decode freely under every variant (task scores)")
-    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--limit", type=int, default=None, help="first N prompts (after --n-tokens and --shard)")
+    p.add_argument("--n-tokens", type=int, nargs="+", default=None,
+                   help="only records with these n_tokens (continuation context lengths), e.g. 8192")
     p.add_argument("--device", default="auto")
     p.add_argument("--dtype", default="float16", choices=["float16", "bfloat16", "float32"])
     p.add_argument("--chat-template", default="auto", choices=["auto", "on", "off"])
@@ -681,10 +693,7 @@ def main():
     if done_path.exists() and not args.overwrite:
         done = {json.loads(l)["id"] for l in done_path.read_text().splitlines() if l.strip()}
 
-    prompts = load_prompts(args.prompts, args.limit)
-    if args.shard:
-        i, n = (int(x) for x in args.shard.split("/"))
-        prompts = prompts[i::n]
+    prompts = select_prompts(load_prompts(args.prompts, None), args.n_tokens, args.shard, args.limit)
     print(f"device={device} variants={[v.name for v in variants]} prompts={len(prompts)}")
     for i, rec in enumerate(prompts):
         pid = str(rec["id"])

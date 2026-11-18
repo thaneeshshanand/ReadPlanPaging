@@ -86,6 +86,16 @@
       "prompts": 40
     }
   ],
+  "indicative_only": {
+    "fields": [
+      "worst_prompt",
+      "worst_prompt_increase",
+      "best_prompt",
+      "best_prompt_increase",
+      "prompts_above_2pct"
+    ],
+    "note": "\u2020 indicative only: per-prompt figures (worst, best, prompts above +2%) are noisy and do not decide"
+  },
   "bar": {
     "variant": "uniform4_kstatic",
     "rho_meta": 0.2604835202735125,

@@ -1,0 +1,39 @@
+{
+  "pass": true,
+  "criteria": [
+    {
+      "name": "verdict unchanged",
+      "ok": true,
+      "detail": "'go' vs 'go'"
+    },
+    {
+      "name": "pooled ppl increase within 0.25 points",
+      "ok": true,
+      "detail": "largest -0.122 pp (live_w0.001_c0.02_h4b3_kgroup256); fp16 +0.000, uniformK4V3_kgroup256 -0.014, uniform4_kgroup256 -0.062, coldkeys_R4_w0.001_c0.02_h4b3_kgroup256 -0.081, live_w0.001_c0.02_h4b3_kgroup256 -0.122"
+    },
+    {
+      "name": "no prompt beyond 5.0 points",
+      "ok": true,
+      "detail": "0 of 200 rows beyond or non-finite; largest +1.85 pp (uniform4_kgroup256, cont-multi_news-348357789b1c-4096)"
+    },
+    {
+      "name": "same prompt set",
+      "ok": true,
+      "detail": "0 prompts only in A, 0 only in B"
+    }
+  ],
+  "pooled_diff_pp": {
+    "fp16": 0.0,
+    "uniformK4V3_kgroup256": -0.013568,
+    "uniform4_kgroup256": -0.06161899999999999,
+    "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256": -0.081299,
+    "live_w0.001_c0.02_h4b3_kgroup256": -0.12238699999999997
+  },
+  "rows_beyond": [],
+  "thresholds": {
+    "pooled_pp": 0.25,
+    "prompt_pp": 5.0
+  },
+  "a": "results/prescreen-4k/granite-3.3-2b-torch2.15",
+  "b": "results/prescreen-4k/granite-3.3-2b"
+}

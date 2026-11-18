@@ -20,3 +20,12 @@ differences in keys and values move values across quantiser rounding boundaries,
 128 scored tokens per prompt a few changed tokens move a prompt's perplexity by ~1%. Treat
 per-prompt differences below ~1 point across environments as noise; the pooled numbers are
 the stable quantity.
+
+## Re-checked under the replication rule (2026-11-17)
+
+`compare.log`, `compare_*.csv` and `compare_check.json` were regenerated with
+`compare_runs.py --check` (the rule of `docs/PHASE0.md`, "Changes made before any 7B data").
+The 0.3-point flags above are superseded. Result: PASS. Verdict unchanged; largest pooled
+difference -0.12 points (f), limit 0.25; largest per-prompt difference 1.85 points, limit 5.
+Per-prompt |difference| by band over the four quantised variants (160 rows): 79 below 0.3,
+75 at 0.3-1, 6 at 1-2, none above 2.

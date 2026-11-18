@@ -143,6 +143,10 @@ WIDTHS = (16, 8, 4, 3, 2)
 FLAG_LIMIT = 0.10  # per-prompt |perplexity increase| beyond this is flagged in flags.csv
 FLAG_FIELDS = ("nll_sum", "fp16_nll_sum", "ppl_increase", "tf_agree", "hot", "warm", "cold")
 WORST_LIMIT = 0.02  # per-prompt perplexity increase counted in prompts_above_2pct (reported, does not decide)
+# Per-prompt columns rest on 128 scored tokens per prompt (256 on the 7B sets) and drift by ~1 point between
+# torch versions (results/prescreen-4k/granite-3.3-2b-torch2.15/NOTES.md): indicative only, never decisive.
+INDICATIVE = ("worst_prompt", "worst_prompt_increase", "best_prompt", "best_prompt_increase", "prompts_above_2pct")
+INDICATIVE_NOTE = "† indicative only: per-prompt figures (worst, best, prompts above +2%) are noisy and do not decide"
 COMPARE_KCODEC = "group256"  # key codec of the ladders: the uniform 4-bit row shown beside e and f  # uniform widths; 16 is fp16
 
 
@@ -198,6 +202,7 @@ def decide(rows: list[dict]) -> dict:
     return {
         "verdict": verdict,
         "comparison": comparison,
+        "indicative_only": {"fields": list(INDICATIVE), "note": INDICATIVE_NOTE},
         "bar": bar and {"variant": bar["variant"], "rho_meta": bar["rho_meta"], "ppl_increase": bar["ppl_increase"]},
         "rho_meta_budget": budget,
         "tiered": [fmt(r) for r in rows if r["kind"] in TIERED_KINDS],
@@ -436,7 +441,7 @@ def main():
         "git_commit": commit, "decision": decision, "bootstrap_resamples": BOOTSTRAP, "fp16_ppl": fp_ppl, "run_meta": metas}, indent=2))
 
     print(f"{n_prompts} prompts, {int(fp['tokens'])} reference tokens per variant, fp16 ppl {fp_ppl:.4f} -> {args.out}")
-    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13} {'worst%':>6} {'best%':>6} {'n>2%':>4} {'flag':>4}"
+    hdr = f"{'variant':44} {'dPPL% [95% CI]':>22} {'agree':>6} {'aErr':>6} {'rho':>6} {'rhoM':>6} {'HOTeff':>6} {'fixup':>6} {'recC':>5} {'prec':>5} {'tail>.05 b/a':>13} {'worst%†':>7} {'best%†':>6} {'n>2%†':>5} {'flag':>4}"
     print(hdr)
     for r in rows:
         rc = r["recall_cold"] if r["kind"] != "live" else r["plan_recall_hot"]
@@ -448,8 +453,9 @@ def main():
               f"{r['rho_meta']:6.3f} {r['hot_effective']:6.3f} {r['fixup_rate']:6.4f} {rc if rc == '' else format(rc, '.2f'):>5} "
               f"{r['promotion_precision'] if r['promotion_precision'] == '' else format(r['promotion_precision'], '.2f'):>5} "
               f"{r['frac_qheads_cold_mass_gt_0.05_before']:6.4f}/{r['frac_qheads_cold_mass_gt_0.05_after']:.4f} "
-              f"{100 * r['ppl_increase_prompt_max']:6.2f} {100 * r['ppl_increase_prompt_min']:6.2f} {r['prompts_above_2pct']:4d} "
+              f"{100 * r['ppl_increase_prompt_max']:7.2f} {100 * r['ppl_increase_prompt_min']:6.2f} {r['prompts_above_2pct']:5d} "
               f"{r['prompts_beyond_10pct'] + r['prompts_nonfinite']:4d}")
+    print(INDICATIVE_NOTE)
     print(f"\nDecision: {decision['verdict']}")
     if decision["bar"]:
         print(f"  bar: {decision['bar']['variant']} rho_meta={decision['bar']['rho_meta']:.3f}; budget rho_meta <= {decision['rho_meta_budget']:.3f}")
@@ -457,11 +463,12 @@ def main():
         print(f"  {t['variant']:48} dPPL={100 * t['ppl_increase']:6.2f}% (CI hi {100 * t['ci_hi']:5.2f}%) rho_meta={t['rho_meta']:.3f}"
               f" {'OK' if t['within_limit'] else 'quality-fail'} {'' if t['under_budget'] else 'over-budget'}"
               f"{'' if t['decides'] else ' (c/d: reported, does not decide)'}")
-    print(f"\n  {'role':9} {'variant':44} {'dPPL% [95% CI]':>22} {'rhoM':>6} {'worst%':>6} {'best%':>6} {'n>2%':>4}  worst prompt / best prompt")
+    print(f"\n  {'role':9} {'variant':44} {'dPPL% [95% CI]':>22} {'rhoM':>6} {'worst%†':>7} {'best%†':>6} {'n>2%†':>5}  worst prompt / best prompt†")
     for c in decision["comparison"]:
         ci = f"{100 * c['ppl_increase']:6.2f} [{100 * c['ci_lo']:5.2f},{100 * c['ci_hi']:5.2f}]" if c["ci_lo"] is not None else f"{100 * c['ppl_increase']:6.2f}"
-        print(f"  {c['role']:9} {c['variant']:44} {ci:>22} {c['rho_meta']:6.3f} {100 * c['worst_prompt_increase']:6.2f} "
-              f"{100 * c['best_prompt_increase']:6.2f} {c['prompts_above_2pct']:4d}  {c['worst_prompt']} / {c['best_prompt']}")
+        print(f"  {c['role']:9} {c['variant']:44} {ci:>22} {c['rho_meta']:6.3f} {100 * c['worst_prompt_increase']:7.2f} "
+              f"{100 * c['best_prompt_increase']:6.2f} {c['prompts_above_2pct']:5d}  {c['worst_prompt']} / {c['best_prompt']}")
+    print(f"  {INDICATIVE_NOTE}")
     print(f"\n  flags (non-finite or |per-prompt ppl increase| > {FLAG_LIMIT:.0%}): {len(flags)}")
     for f in flags:
         print(f"    {f['variant']:48} {f['prompt']:40} {f['ppl_increase']}  {f['reason']}")
