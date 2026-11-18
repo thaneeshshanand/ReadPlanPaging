@@ -317,6 +317,7 @@ class TieredState:
         self.calib: dict | None = None  # layer -> {min, max, mean, mad} [H, D]
         self.verify = False
         self.verify_err = 0.0  # max relative L2 error of the patched fp16 output against stock SDPA
+        self.dump = None  # optional callback(layer, planned [H, nb] int8, true block mass [H, G, nb]); jumps_capture.py
 
     def layer_calib(self, layer: int, device):
         if self.calib is None:
@@ -456,6 +457,8 @@ def tiered_attention(module, query, key, value, attention_mask, scaling):
             ev_c, ev_w = fresh_hot & (planned == COLD), fresh_hot & (planned == WARM)
             STATE.recall[layer] = torch.stack([ev_c.sum(), (ev_c & promoted).sum(), ev_w.sum(), (ev_w & promoted).sum()]).float()
         m16, _ = block_stats(w16, nb)  # [H, G, nb] true mass
+        if STATE.dump is not None:
+            STATE.dump(layer, planned, m16)
         before = (m16 * (planned == COLD)[:, None, :]).sum(-1)
         after = (m16 * (tiers == COLD)[:, None, :]).sum(-1)
         STATE.tail[layer] = torch.cat([_tail(before), _tail(after)])
