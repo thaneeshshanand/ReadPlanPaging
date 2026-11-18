@@ -35,7 +35,10 @@ NEG_BAND = (0.5, 2.0)
 RULE_CONC, RULE_LEX, RULE_RATIO = 0.90, 0.40, 5.0
 
 FIELDS = ["prompt", "t", "layer", "kvh", "qh", "jump", "mem", "left", "rand", "lex_exact", "lex_norm", "lex_neg", "top1",
-          "rand_m_exact", "rand_m_norm", "rand_m_neg"]  # rand_m_*: random with as many blocks as that lookup picked
+          "rand_m_exact", "rand_m_norm", "rand_m_neg",  # rand_m_*: random with as many blocks as that lookup picked
+          "ceil", "first4", "behind8"]  # addition 1 (docs/JUMPS.md): ceiling and position; reported, do not decide
+REFRESH_R = 4
+FIRST_BLOCKS, BEHIND_BLOCKS = 4, 8
 
 
 def cap_of(nb: int) -> int:
@@ -168,6 +171,10 @@ def analyse_prompt(pi: int, pdir: Path, tok, other: Path | None):
             sel[m] = np.asarray(inrem[:k2], np.int64)
             lookup.append({"prompt": pi, "t": t, "layer": l, "kvh": h, f"in_cold_{m}": len(inrem)})
         nan = float("nan")
+        nb_ref = math.ceil((n0 + t - t % REFRESH_R + 1) / BLOCK)  # blocks at the plan's refresh step
+        recent = nb_ref - 2  # the last two blocks at refresh and every newer one are HOT (always read)
+        behind = slice(max(0, recent - BEHIND_BLOCKS), max(0, recent))
+        remidx = np.nonzero(rem)[0]
         for r in rs:
             m = jmass[r, :nb]
             J = float(m.sum())
@@ -178,7 +185,8 @@ def analyse_prompt(pi: int, pdir: Path, tok, other: Path | None):
                          float(m[sel["norm"]].sum()) if "norm" in sel else float("nan"),
                          float(m[sel["neg"]].sum()) if "neg" in sel else nan, float(m.max())]
                         + [left * len(sel[k]) / nrem if k in sel and nrem else (0.0 if k in sel else nan)
-                           for k in ("exact", "norm", "neg")])
+                           for k in ("exact", "norm", "neg")]
+                        + [float(np.sort(m[remidx])[::-1][:k2].sum()), float(m[:FIRST_BLOCKS].sum()), float(m[behind].sum())])
     return np.asarray(rows, np.float64).reshape(-1, len(FIELDS)), lookup, (L, H)
 
 
@@ -203,6 +211,14 @@ def shares(a) -> dict:
         a_, b_ = out[f"lex_{k}_share"], out[f"rand_m_{k}_share"]
         out[f"lex_{k}_over_rand_matched"] = a_ / b_ if a_ is not None and b_ else None
     out["mem_share_of_jump"] = float(col(a, "mem").sum() / col(a, "jump").sum()) if len(a) else None
+    # addition 1: reported beside the rule, do not decide
+    J = col(a, "jump")
+    out["ceiling_share"] = float(col(a, "ceil").sum() / left) if left > 0 else None
+    sharp = col(a, "top1") >= SHARP * J
+    out["sharp_share_of_jumps"] = float(sharp.mean()) if len(a) else None
+    out["sharp_share_of_jump_mass"] = float(J[sharp].sum() / J.sum()) if len(a) else None
+    out["first4_share_of_jump_mass"] = float(col(a, "first4").sum() / J.sum()) if len(a) else None
+    out["behind8_share_of_jump_mass"] = float(col(a, "behind8").sum() / J.sum()) if len(a) else None
     return out
 
 
@@ -291,7 +307,8 @@ def main():
                "firing_heads": [[int(x // H), int(x % H)] for x in fire], "fire": s_fire,
                "fire_share_of_jump_mass": float(jm[fire].sum() / jm.sum()),
                "original_definition_top80": {"heads": len(top80), **s_80},
-               "pass": bool(len(fire) and s_fire["lex_exact_share"] is not None and s_fire["lex_exact_share"] >= POS_PASS)}
+               "pass": bool(len(fire) and s_fire["lex_exact_share"] is not None and s_fire["lex_exact_share"] >= POS_PASS),
+               "pass_original_definition": bool(s_80["lex_exact_share"] is not None and s_80["lex_exact_share"] >= POS_PASS)}
         decision["controls"][meta["model"]] = {"positive": res}
         print(f"POSITIVE {meta['model']}: {len(ids)} prompts, {s_all['jumps']} jumps, firing heads {len(fire)}/{L * H}; "
               f"exact lexical covers {fmt(s_fire['lex_exact_share'])} of leftover in them "
@@ -314,13 +331,18 @@ def main():
             al = a[col(a, "layer") == l]
             s = shares(al)
             lr.append({"layer": l, **{k: s[k] for k in ("jumps", "jump_mass", "leftover", "rand_share", "lex_exact_share",
-                                                        "lex_norm_share", "lex_neg_share")}})
+                                                        "lex_norm_share", "lex_neg_share", "ceiling_share",
+                                                        "sharp_share_of_jump_mass", "first4_share_of_jump_mass",
+                                                        "behind8_share_of_jump_mass")}})
             for h in range(H):
                 ah = al[col(al, "kvh") == h]
                 s = shares(ah)
                 hr.append({"layer": l, "kvh": h, **{k: s[k] for k in ("jumps", "jump_mass", "mem_covered", "leftover",
                                                                        "rand_share", "lex_exact_share", "lex_norm_share",
-                                                                       "lex_neg_share")}})
+                                                                       "lex_neg_share", "ceiling_share",
+                                                                       "sharp_share_of_jump_mass",
+                                                                       "first4_share_of_jump_mass",
+                                                                       "behind8_share_of_jump_mass")}})
         table(mdir / "per_head.csv", hr)
         table(mdir / "per_layer.csv", lr)
         # negative control, all prompts
@@ -379,12 +401,20 @@ def main():
         print(f"  half B outside top 10%: random {fmt(s_out['rand_share'])}, lexical exact {fmt(s_out['lex_exact_share'])} "
               f"(x{(s_out['lex_exact_over_rand'] or 0):.1f}), norm {fmt(s_out['lex_norm_share'])}")
         print(f"  leftover jump mass on B: plan+memory {fmt(noscan_left)}, scan top 10% + plan+memory {fmt(scan_left)}")
+        print(f"  beside the rule (half B outside top 10%): ceiling {fmt(s_out['ceiling_share'])}; sharp jumps "
+              f"{fmt(s_out['sharp_share_of_jumps'])} of jumps, {fmt(s_out['sharp_share_of_jump_mass'])} of mass; "
+              f"first 4 blocks {fmt(s_out['first4_share_of_jump_mass'])}, 8 behind recent "
+              f"{fmt(s_out['behind8_share_of_jump_mass'])}")
+        print(f"  same, all prompts all heads: ceiling {fmt(s_all['ceiling_share'])}; sharp {fmt(s_all['sharp_share_of_jumps'])}"
+              f" / {fmt(s_all['sharp_share_of_jump_mass'])}; first 4 {fmt(s_all['first4_share_of_jump_mass'])}; "
+              f"behind 8 {fmt(s_all['behind8_share_of_jump_mass'])}")
 
     # ---- rule (docs/JUMPS.md)
     n_conc = sum(r["concentrated"] for r in verdict_inputs)
     n_lex = sum(r["lexical_pass_exact"] for r in verdict_inputs)
     n_lex_norm = sum(r["lexical_pass_norm"] for r in verdict_inputs)
-    pos_ok = all(c["positive"]["pass"] for c in decision["controls"].values()) if decision["controls"] else None
+    pos_ok = (all(c["positive"]["pass"] and c["positive"]["pass_original_definition"] for c in decision["controls"].values())
+              if decision["controls"] else None)
     neg_ok = all(m["negative_control"]["pass"] for m in decision["models"].values())
     if n_conc >= 2:
         verdict, why = "no-go (concentrated)", f"top 10% of heads hold >= 90% of held-out jump mass on {n_conc} of 3 models"
@@ -396,10 +426,11 @@ def main():
     decision["verdict"] = {"verdict": verdict, "why": why, "models_concentrated": n_conc, "models_lexical_pass": n_lex,
                            "normalised_text_would_give": alt, "positive_controls_pass": pos_ok,
                            "negative_controls_pass": neg_ok,
-                           "valid": bool(pos_ok is not False and neg_ok)}
+                           "valid": bool(pos_ok is not False and neg_ok),
+                           "flag": None if pos_ok else "positive control FAILED under both definitions (docs/JUMPS.md)"}
     (args.out / "decision.json").write_text(json.dumps(decision, indent=2))
     print(f"\nVERDICT: {verdict} ({why}); normalised text would give: {alt}; controls: positive "
-          f"{pos_ok}, negative {neg_ok}")
+          f"{'PASS' if pos_ok else 'FAILED (both definitions)'}, negative {'PASS' if neg_ok else 'FAIL'}")
 
 
 if __name__ == "__main__":

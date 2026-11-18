@@ -142,3 +142,23 @@ mostly not copy events.
 
 Negative control (3-prompt Qwen2.5-1.5B smoke only): 1.6% against 1.8% for random with as many
 blocks (x0.86), pass. Full runs not yet started.
+
+## Additions (2026-11-18, after the positive control, before any full-run data)
+
+The positive control stays recorded as FAILED under both definitions and is not changed
+again; the verdict carries that flag. Three numbers are added. They are reported beside the
+rule's verdict, per model, and do not change the rule.
+
+a. Ceiling: per jump, the share of its leftover mass held by the remaining COLD blocks with
+   the most mass, up to k2 blocks (the same budget as random and lexical). The best any pick of
+   that size could do for that jump (an oracle per query head, so it can exceed what a per-KV-head
+   pick could reach). Pooled like the others.
+b. Sharpness: the share of jumps, and of jump mass, where the largest COLD block holds at least
+   50% of the jump mass.
+c. Position: the share of jump mass in the first 4 blocks, and in the 8 blocks just behind the
+   always-read recent blocks (the last two blocks at the plan's refresh step, and every newer
+   block, are HOT).
+
+Alignment check, now a test (`tests/test_jumps.py`): on the repeated random-token prompts
+(synthetic, and the captured controls when present), the lookup ranks the block holding the
+token after the earlier copy among its first two blocks on every scored step.

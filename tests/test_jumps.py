@@ -49,3 +49,40 @@ def test_lexical_rarity_breaks_ties():
     out = lexical_blocks(seq, 8, seq, log_counts(seq))
     assert out == [0]  # all in block 0 for this short sequence
     # rarity: with suffix 2 neither matches (seq[7] = 3), so suffix 1 for both; equal rarity -> most recent
+
+
+def _repeat_context(seed):
+    # same construction as jumps_capture.repeat_records: 2048 random ids repeated, 3967 prompt + 129 reference
+    s = np.random.default_rng(seed).integers(1000, 30000, 2048)
+    return np.concatenate([s, s])
+
+
+def _check_alignment(ctx, n0, steps):
+    lc = log_counts(ctx[:n0])
+    for t in range(steps):
+        pos = n0 + t
+        p = pos - 2048
+        assert ctx[p] == ctx[pos]
+        out = lexical_blocks(ctx, pos, ctx, lc)
+        target = (p + 1) // BLOCK
+        assert target in out[:2], (t, pos, target, out[:4])  # the earlier copy ranks first (suffix 4)
+
+
+def test_alignment_on_repeated_random_tokens():
+    for seed in range(4):
+        _check_alignment(_repeat_context(seed), 3967, 128)
+
+
+def test_alignment_on_captured_repeat_controls():
+    import json
+    import pytest
+    root = Path(__file__).resolve().parent.parent / "runs" / "jumps"
+    dirs = sorted(root.glob("*-repeat/repeat-*")) if root.exists() else []
+    if not dirs:
+        pytest.skip("no captured repeat controls")
+    for d in dirs:
+        info = json.loads((d / "prompt.json").read_text())
+        ctx = np.asarray(info["context_ids"])
+        bos = len(ctx) - 4096
+        assert bos >= 0
+        _check_alignment(ctx[bos:], info["prompt_len"] - bos, len(ctx) - info["prompt_len"] - 1)
