@@ -1,0 +1,164 @@
+commit e763cfc start 2026-11-18 13:40:05
+device=mps variant=coldkeys_R4_w0.001_c0.02_h4b3_kgroup256 prompts=40 done=0
+[1/40] cont-narrativeqa-cb33b635d4a1-4096: ppl=25.2945 jumps=1024 (24s)
+[2/40] cont-gov_report-6de6104b947e-4096: ppl=4.8508 jumps=1412 (24s)
+[3/40] cont-qmsum-f0060bb96ccf-4096: ppl=11.3803 jumps=1843 (23s)
+[4/40] cont-multi_news-d485afe6e98d-4096: ppl=19.5648 jumps=1767 (24s)
+[5/40] cont-qasper-c509e3bda123-4096: ppl=5.8403 jumps=1853 (24s)
+[6/40] cont-lcc-ea081b4223c2-4096: ppl=2.3382 jumps=1254 (23s)
+[7/40] cont-narrativeqa-e76cb4d216f0-4096: ppl=4.3126 jumps=2038 (24s)
+[8/40] cont-gov_report-6b904be52b37-4096: ppl=3.1216 jumps=1496 (24s)
+[9/40] cont-qmsum-a9db92bf70da-4096: ppl=19.1694 jumps=1832 (24s)
+[10/40] cont-multi_news-0e285d4f4c44-4096: ppl=3.4745 jumps=1931 (25s)
+[11/40] cont-qasper-679cbfcf05ce-4096: ppl=8.0952 jumps=1435 (25s)
+[12/40] cont-lcc-cf8e0d5f2adf-4096: ppl=2.7318 jumps=1598 (25s)
+[13/40] cont-narrativeqa-949abce7e7ab-4096: ppl=14.6544 jumps=2016 (25s)
+[14/40] cont-gov_report-679f8b9b9a02-4096: ppl=6.7294 jumps=1644 (25s)
+[15/40] cont-qmsum-8476fcbe8bf6-4096: ppl=9.6361 jumps=1597 (25s)
+[16/40] cont-multi_news-348357789b1c-4096: ppl=3.5533 jumps=1914 (25s)
+[17/40] cont-qasper-677dad703988-4096: ppl=2.3893 jumps=1725 (25s)
+[18/40] cont-lcc-7e20f7645ae4-4096: ppl=1.3373 jumps=1638 (25s)
+[19/40] cont-narrativeqa-379ccfa193f4-4096: ppl=12.4122 jumps=1165 (25s)
+[20/40] cont-gov_report-14fff932d702-4096: ppl=7.5530 jumps=2020 (25s)
+[21/40] cont-qmsum-4ad5fe6d35e7-4096: ppl=12.8967 jumps=890 (25s)
+[22/40] cont-multi_news-8b4c90dab64e-4096: ppl=9.9768 jumps=1441 (25s)
+[23/40] cont-qasper-04174ea6c984-4096: ppl=6.5713 jumps=2255 (25s)
+[24/40] cont-lcc-997526c4ebbb-4096: ppl=1.1479 jumps=1816 (25s)
+[25/40] cont-narrativeqa-33a9901ae9f8-4096: ppl=11.8391 jumps=1081 (25s)
+[26/40] cont-gov_report-a2695a1634a2-4096: ppl=11.0697 jumps=1303 (25s)
+[27/40] cont-qmsum-31341465a9a8-4096: ppl=7.6521 jumps=1386 (25s)
+[28/40] cont-multi_news-69b0462ff955-4096: ppl=3.2901 jumps=1879 (25s)
+[29/40] cont-qasper-db4afd55783a-4096: ppl=5.9601 jumps=1799 (25s)
+[30/40] cont-lcc-9d639220f2ae-4096: ppl=1.8338 jumps=2144 (25s)
+[31/40] cont-narrativeqa-e1514d530bec-4096: ppl=4.9291 jumps=2010 (24s)
+[32/40] cont-gov_report-ad1e97265c41-4096: ppl=4.8387 jumps=1899 (25s)
+[33/40] cont-qmsum-712f5d33fc0c-4096: ppl=10.4892 jumps=1521 (25s)
+[34/40] cont-multi_news-9f364b72d418-4096: ppl=7.2158 jumps=2109 (25s)
+[35/40] cont-qasper-8fa5af6a36dd-4096: ppl=3.7912 jumps=1602 (25s)
+[36/40] cont-lcc-fbd2ce3fa32e-4096: ppl=2.4117 jumps=2115 (25s)
+[37/40] cont-narrativeqa-8317d375904e-4096: ppl=14.0271 jumps=1744 (25s)
+[38/40] cont-gov_report-2c913d116590-4096: ppl=4.8855 jumps=1667 (25s)
+[39/40] cont-qmsum-56aa2c5a8976-4096: ppl=12.9210 jumps=1104 (25s)
+[40/40] cont-multi_news-78303e2cb9fc-4096: ppl=7.6431 jumps=1549 (25s)
+device=mps variant=coldkeys_R4_w0.001_c0.02_h4b3_kgroup256 prompts=40 done=0
+[1/40] cont-narrativeqa-cb33b635d4a1-4096: ppl=17.4070 jumps=980 (35s)
+[2/40] cont-gov_report-6de6104b947e-4096: ppl=4.6458 jumps=1794 (35s)
+[3/40] cont-qmsum-f0060bb96ccf-4096: ppl=10.9944 jumps=2229 (35s)
+[4/40] cont-multi_news-d485afe6e98d-4096: ppl=15.3203 jumps=1833 (35s)
+[5/40] cont-qasper-c509e3bda123-4096: ppl=5.3446 jumps=2067 (35s)
+[6/40] cont-lcc-ea081b4223c2-4096: ppl=2.3335 jumps=1349 (35s)
+[7/40] cont-narrativeqa-e76cb4d216f0-4096: ppl=4.0605 jumps=2590 (36s)
+[8/40] cont-gov_report-6b904be52b37-4096: ppl=3.1237 jumps=2033 (35s)
+[9/40] cont-qmsum-a9db92bf70da-4096: ppl=17.8496 jumps=2251 (35s)
+[10/40] cont-multi_news-0e285d4f4c44-4096: ppl=3.1830 jumps=2598 (35s)
+[11/40] cont-qasper-679cbfcf05ce-4096: ppl=7.8713 jumps=1340 (35s)
+[12/40] cont-lcc-cf8e0d5f2adf-4096: ppl=2.4098 jumps=1842 (35s)
+[13/40] cont-narrativeqa-949abce7e7ab-4096: ppl=11.8403 jumps=2460 (35s)
+[14/40] cont-gov_report-679f8b9b9a02-4096: ppl=5.7640 jumps=2000 (35s)
+[15/40] cont-qmsum-8476fcbe8bf6-4096: ppl=9.1603 jumps=1749 (35s)
+[16/40] cont-multi_news-348357789b1c-4096: ppl=3.3717 jumps=2581 (35s)
+[17/40] cont-qasper-677dad703988-4096: ppl=2.5331 jumps=2111 (35s)
+[18/40] cont-lcc-7e20f7645ae4-4096: ppl=1.3281 jumps=1934 (35s)
+[19/40] cont-narrativeqa-379ccfa193f4-4096: ppl=11.3468 jumps=1373 (35s)
+[20/40] cont-gov_report-14fff932d702-4096: ppl=6.3112 jumps=2027 (35s)
+[21/40] cont-qmsum-4ad5fe6d35e7-4096: ppl=13.0854 jumps=794 (35s)
+[22/40] cont-multi_news-8b4c90dab64e-4096: ppl=8.7343 jumps=1695 (35s)
+[23/40] cont-qasper-04174ea6c984-4096: ppl=6.0299 jumps=2891 (36s)
+[24/40] cont-lcc-997526c4ebbb-4096: ppl=1.1493 jumps=3290 (36s)
+[25/40] cont-narrativeqa-33a9901ae9f8-4096: ppl=11.0416 jumps=1305 (35s)
+[26/40] cont-gov_report-a2695a1634a2-4096: ppl=9.3798 jumps=1596 (35s)
+[27/40] cont-qmsum-31341465a9a8-4096: ppl=6.5645 jumps=1778 (35s)
+[28/40] cont-multi_news-69b0462ff955-4096: ppl=2.9119 jumps=2150 (35s)
+[29/40] cont-qasper-db4afd55783a-4096: ppl=5.7380 jumps=1843 (35s)
+[30/40] cont-lcc-9d639220f2ae-4096: ppl=1.6753 jumps=2974 (35s)
+[31/40] cont-narrativeqa-e1514d530bec-4096: ppl=4.7895 jumps=3104 (35s)
+[32/40] cont-gov_report-ad1e97265c41-4096: ppl=4.8054 jumps=1924 (35s)
+[33/40] cont-qmsum-712f5d33fc0c-4096: ppl=10.0173 jumps=1694 (35s)
+[34/40] cont-multi_news-9f364b72d418-4096: ppl=6.9656 jumps=2438 (35s)
+[35/40] cont-qasper-8fa5af6a36dd-4096: ppl=4.1755 jumps=1817 (35s)
+[36/40] cont-lcc-fbd2ce3fa32e-4096: ppl=2.5777 jumps=2377 (35s)
+[37/40] cont-narrativeqa-8317d375904e-4096: ppl=12.2540 jumps=2097 (35s)
+[38/40] cont-gov_report-2c913d116590-4096: ppl=4.5882 jumps=1842 (35s)
+[39/40] cont-qmsum-56aa2c5a8976-4096: ppl=11.0851 jumps=1110 (35s)
+[40/40] cont-multi_news-78303e2cb9fc-4096: ppl=7.9010 jumps=1514 (35s)
+device=mps variant=coldkeys_R4_w0.001_c0.02_h4b3_kgroup256 prompts=40 done=0
+[1/40] cont-narrativeqa-cb33b635d4a1-4096: ppl=6.0687 jumps=8605 (47s)
+[2/40] cont-gov_report-6de6104b947e-4096: ppl=1.4779 jumps=11214 (47s)
+[3/40] cont-qmsum-f0060bb96ccf-4096: ppl=5.7421 jumps=15066 (47s)
+[4/40] cont-multi_news-d485afe6e98d-4096: ppl=8.7869 jumps=12326 (46s)
+[5/40] cont-qasper-c509e3bda123-4096: ppl=7.3880 jumps=10512 (47s)
+[6/40] cont-lcc-ea081b4223c2-4096: ppl=1.8698 jumps=13734 (47s)
+[7/40] cont-narrativeqa-e76cb4d216f0-4096: ppl=2.4814 jumps=14776 (47s)
+[8/40] cont-gov_report-6b904be52b37-4096: ppl=1.5799 jumps=13876 (47s)
+[9/40] cont-qmsum-a9db92bf70da-4096: ppl=8.9100 jumps=14209 (47s)
+[10/40] cont-multi_news-0e285d4f4c44-4096: ppl=3.8940 jumps=12110 (47s)
+[11/40] cont-qasper-679cbfcf05ce-4096: ppl=5.0875 jumps=10236 (47s)
+[12/40] cont-lcc-cf8e0d5f2adf-4096: ppl=1.9663 jumps=14717 (47s)
+[13/40] cont-narrativeqa-949abce7e7ab-4096: ppl=7.6400 jumps=11534 (47s)
+[14/40] cont-gov_report-679f8b9b9a02-4096: ppl=3.1638 jumps=14259 (47s)
+[15/40] cont-qmsum-8476fcbe8bf6-4096: ppl=8.6452 jumps=10895 (47s)
+[16/40] cont-multi_news-348357789b1c-4096: ppl=3.6676 jumps=14432 (47s)
+[17/40] cont-qasper-677dad703988-4096: ppl=5.2780 jumps=11248 (47s)
+[18/40] cont-lcc-7e20f7645ae4-4096: ppl=1.3746 jumps=12081 (47s)
+[19/40] cont-narrativeqa-379ccfa193f4-4096: ppl=8.6306 jumps=11319 (47s)
+[20/40] cont-gov_report-14fff932d702-4096: ppl=6.4714 jumps=11332 (47s)
+[21/40] cont-qmsum-4ad5fe6d35e7-4096: ppl=14.9389 jumps=9633 (47s)
+[22/40] cont-multi_news-8b4c90dab64e-4096: ppl=4.7672 jumps=13579 (47s)
+[23/40] cont-qasper-04174ea6c984-4096: ppl=6.0014 jumps=9403 (47s)
+[24/40] cont-lcc-997526c4ebbb-4096: ppl=2.0260 jumps=12951 (47s)
+[25/40] cont-narrativeqa-33a9901ae9f8-4096: ppl=8.8767 jumps=10941 (47s)
+[26/40] cont-gov_report-a2695a1634a2-4096: ppl=5.0340 jumps=11494 (47s)
+[27/40] cont-qmsum-31341465a9a8-4096: ppl=6.7783 jumps=7736 (47s)
+[28/40] cont-multi_news-69b0462ff955-4096: ppl=4.5723 jumps=14444 (47s)
+[29/40] cont-qasper-db4afd55783a-4096: ppl=5.6915 jumps=9860 (47s)
+[30/40] cont-lcc-9d639220f2ae-4096: ppl=2.9192 jumps=13479 (47s)
+[31/40] cont-narrativeqa-e1514d530bec-4096: ppl=9.5381 jumps=12049 (47s)
+[32/40] cont-gov_report-ad1e97265c41-4096: ppl=3.0454 jumps=12837 (47s)
+[33/40] cont-qmsum-712f5d33fc0c-4096: ppl=6.2787 jumps=14937 (47s)
+[34/40] cont-multi_news-9f364b72d418-4096: ppl=7.7212 jumps=11269 (47s)
+[35/40] cont-qasper-8fa5af6a36dd-4096: ppl=4.5665 jumps=11827 (47s)
+[36/40] cont-lcc-fbd2ce3fa32e-4096: ppl=2.2063 jumps=14893 (47s)
+[37/40] cont-narrativeqa-8317d375904e-4096: ppl=13.0039 jumps=11434 (47s)
+[38/40] cont-gov_report-2c913d116590-4096: ppl=6.2447 jumps=10743 (47s)
+[39/40] cont-qmsum-56aa2c5a8976-4096: ppl=7.9876 jumps=10627 (47s)
+[40/40] cont-multi_news-78303e2cb9fc-4096: ppl=7.1648 jumps=14912 (47s)
+captures done 2026-11-18 14:52:30
+POSITIVE Qwen/Qwen2.5-1.5B-Instruct: 4 prompts, 4216 jumps, firing heads 2/56; exact lexical covers 42.4% of leftover in them (they hold 29.4% of jump mass; random 13.2%; all heads 15.1%; original top-80% definition 18.6%) -> FAIL
+POSITIVE Qwen/Qwen2.5-3B-Instruct: 4 prompts, 2546 jumps, firing heads 5/72; exact lexical covers 12.6% of leftover in them (they hold 8.8% of jump mass; random 16.0%; all heads 1.3%; original top-80% definition 1.3%) -> FAIL
+POSITIVE ibm-granite/granite-3.3-2b-instruct: 4 prompts, 24129 jumps, firing heads 4/320; exact lexical covers 8.4% of leftover in them (they hold 4.0% of jump mass; random 5.4%; all heads 4.1%; original top-80% definition 4.9%) -> FAIL
+
+== Qwen/Qwen2.5-1.5B-Instruct: 40 prompts, 66516 jumps, jump mass 7623.3, memory covers 22.3%
+  all prompts: leftover covered by random 14.8%, lexical exact 19.8%, norm 21.6%
+  negative control: lexical from another prompt 2.7% vs random with as many blocks 2.5% (x1.05) -> PASS
+  lexical exact vs random with as many blocks: 19.8% vs 6.8% (x2.9)
+  lookup returns per step (exact): mean 37.2, median 14, p90 109, none 12.9%; cap 13
+  held-out half B, top heads by half-A rank: top5pct (3) 20.4%, top10pct (6) 32.3%, top20pct (11) 46.7%
+  half B outside top 10%: random 14.8%, lexical exact 14.1% (x0.9), norm 15.6%
+  leftover jump mass on B: plan+memory 77.4%, scan top 10% + plan+memory 51.7%
+  beside the rule (half B outside top 10%): ceiling 60.7%; sharp jumps 4.1% of jumps, 5.7% of mass; first 4 blocks 0.9%, 8 behind recent 1.7%
+  same, all prompts all heads: ceiling 64.7%; sharp 6.4% / 9.7%; first 4 1.0%; behind 8 2.4%
+
+== Qwen/Qwen2.5-3B-Instruct: 40 prompts, 79374 jumps, jump mass 9259.8, memory covers 22.9%
+  all prompts: leftover covered by random 15.2%, lexical exact 17.7%, norm 19.4%
+  negative control: lexical from another prompt 2.7% vs random with as many blocks 2.5% (x1.06) -> PASS
+  lexical exact vs random with as many blocks: 17.7% vs 7.2% (x2.5)
+  lookup returns per step (exact): mean 37.7, median 15, p90 109, none 12.7%; cap 13
+  held-out half B, top heads by half-A rank: top5pct (4) 21.7%, top10pct (7) 33.1%, top20pct (14) 51.6%
+  half B outside top 10%: random 15.3%, lexical exact 14.0% (x0.9), norm 15.5%
+  leftover jump mass on B: plan+memory 75.9%, scan top 10% + plan+memory 50.8%
+  beside the rule (half B outside top 10%): ceiling 62.7%; sharp jumps 5.1% of jumps, 6.9% of mass; first 4 blocks 1.2%, 8 behind recent 2.0%
+  same, all prompts all heads: ceiling 65.9%; sharp 6.6% / 9.7%; first 4 1.2%; behind 8 2.5%
+
+== ibm-granite/granite-3.3-2b-instruct: 40 prompts, 487529 jumps, jump mass 66726.5, memory covers 22.4%
+  all prompts: leftover covered by random 9.3%, lexical exact 15.9%, norm 17.2%
+  negative control: lexical from another prompt 2.5% vs random with as many blocks 2.0% (x1.24) -> PASS
+  lexical exact vs random with as many blocks: 15.9% vs 5.2% (x3.0)
+  lookup returns per step (exact): mean 36.3, median 12, p90 113, none 13.9%; cap 13
+  held-out half B, top heads by half-A rank: top5pct (16) 21.4%, top10pct (32) 35.2%, top20pct (64) 56.5%
+  half B outside top 10%: random 9.7%, lexical exact 10.9% (x1.1), norm 12.0%
+  leftover jump mass on B: plan+memory 76.3%, scan top 10% + plan+memory 48.3%
+  beside the rule (half B outside top 10%): ceiling 56.2%; sharp jumps 3.3% of jumps, 5.3% of mass; first 4 blocks 1.1%, 8 behind recent 7.9%
+  same, all prompts all heads: ceiling 60.9%; sharp 5.0% / 8.8%; first 4 1.2%; behind 8 8.0%
+
+VERDICT: no-go (concentrated on 0, lexical passes on 0 of 3 models); normalised text would give: no-go; controls: positive FAILED (both definitions), negative PASS
+all done 2026-11-18 14:52:55

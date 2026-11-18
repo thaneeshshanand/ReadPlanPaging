@@ -1,0 +1,294 @@
+{
+  "model": "ibm-granite/granite-3.3-2b-instruct",
+  "revision": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+  "dir": "runs/jumps/granite-3.3-2b",
+  "prompts": 40,
+  "kv_heads_total": 320,
+  "all_prompts": {
+    "jumps": 487529,
+    "jump_mass": 66726.51022434235,
+    "mem_covered": 14962.173696517944,
+    "leftover": 51764.3365278244,
+    "rand_share": 0.09320120217412414,
+    "lex_exact_share": 0.15852761814189592,
+    "lex_norm_share": 0.17211473505737712,
+    "lex_neg_share": 0.025184170174133498,
+    "rand_m_exact_share": 0.05220552883861718,
+    "rand_m_norm_share": 0.05737066695262741,
+    "rand_m_neg_share": 0.020235600164940845,
+    "lex_exact_over_rand": 1.7009181689065018,
+    "lex_norm_over_rand": 1.8467008047366378,
+    "lex_exact_over_rand_matched": 3.03660592409574,
+    "lex_norm_over_rand_matched": 3.000047658492399,
+    "lex_neg_over_rand_matched": 1.2445477262278728,
+    "mem_share_of_jump": 0.2242313234457094,
+    "ceiling_share": 0.6085107120964807,
+    "sharp_share_of_jumps": 0.050138555860266776,
+    "sharp_share_of_jump_mass": 0.08790162445847352,
+    "first4_share_of_jump_mass": 0.011845217677845155,
+    "behind8_share_of_jump_mass": 0.0798900878532888
+  },
+  "negative_control": {
+    "lex_neg_share": 0.025184170174133498,
+    "rand_matched_share": 0.020235600164940845,
+    "rand_full_cap_share": 0.09320120217412414,
+    "ratio_to_matched": 1.2445477262278728,
+    "band": [
+      0.5,
+      2.0
+    ],
+    "pass": true
+  },
+  "lookup_returned_per_step": {
+    "exact": {
+      "mean": 36.26901041666667,
+      "median": 12.0,
+      "p90": 113.0,
+      "max": 231.0,
+      "zero_share": 0.13854166666666667,
+      "n": 3840
+    },
+    "norm": {
+      "mean": 40.50182291666667,
+      "median": 17.0,
+      "p90": 120.0,
+      "max": 231.0,
+      "zero_share": 0.10625,
+      "n": 3840
+    },
+    "neg": {
+      "mean": 14.921614583333334,
+      "median": 0.0,
+      "p90": 64.0,
+      "max": 197.0,
+      "zero_share": 0.5817708333333333,
+      "n": 3840
+    }
+  },
+  "lookup_in_remaining_cold_per_head_step": {
+    "exact": {
+      "mean": 20.785861489521352,
+      "median": 6.0,
+      "p90": 64.0,
+      "max": 218.0,
+      "zero_share": 0.2566378851770044,
+      "n": 283863
+    },
+    "norm": {
+      "mean": 23.359046441417163,
+      "median": 9.0,
+      "p90": 70.0,
+      "max": 218.0,
+      "zero_share": 0.2031719526673078,
+      "n": 283863
+    },
+    "neg": {
+      "mean": 9.111557335757038,
+      "median": 0.0,
+      "p90": 34.0,
+      "max": 184.0,
+      "zero_share": 0.6391745313760511,
+      "n": 283863
+    }
+  },
+  "cap_blocks_at_end": 13,
+  "concentration_heldout_B": {
+    "top5pct": {
+      "heads": 16,
+      "share_B": 0.21404694996447626
+    },
+    "top10pct": {
+      "heads": 32,
+      "share_B": 0.35164876456860344
+    },
+    "top20pct": {
+      "heads": 64,
+      "share_B": 0.5648645644741338
+    }
+  },
+  "top10_heads_from_A": [
+    [
+      14,
+      3
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      13,
+      4
+    ],
+    [
+      34,
+      1
+    ],
+    [
+      15,
+      7
+    ],
+    [
+      12,
+      3
+    ],
+    [
+      12,
+      2
+    ],
+    [
+      34,
+      2
+    ],
+    [
+      16,
+      5
+    ],
+    [
+      21,
+      4
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      14,
+      2
+    ],
+    [
+      36,
+      3
+    ],
+    [
+      14,
+      0
+    ],
+    [
+      37,
+      0
+    ],
+    [
+      35,
+      2
+    ],
+    [
+      14,
+      4
+    ],
+    [
+      13,
+      6
+    ],
+    [
+      34,
+      7
+    ],
+    [
+      35,
+      5
+    ],
+    [
+      31,
+      2
+    ],
+    [
+      35,
+      4
+    ],
+    [
+      35,
+      0
+    ],
+    [
+      23,
+      3
+    ],
+    [
+      38,
+      4
+    ],
+    [
+      19,
+      6
+    ],
+    [
+      31,
+      0
+    ],
+    [
+      33,
+      1
+    ],
+    [
+      36,
+      2
+    ],
+    [
+      16,
+      3
+    ],
+    [
+      34,
+      4
+    ]
+  ],
+  "half_B": {
+    "jumps": 260682,
+    "jump_mass": 36948.32281666994,
+    "mem_covered": 8773.283959805965,
+    "leftover": 28175.038856863976,
+    "rand_share": 0.08953192455545085,
+    "lex_exact_share": 0.16201463091139037,
+    "lex_norm_share": 0.17568513314304007,
+    "lex_neg_share": 0.0254371483731473,
+    "rand_m_exact_share": 0.050574338948929924,
+    "rand_m_norm_share": 0.05548867597566307,
+    "rand_m_neg_share": 0.019333437038866298,
+    "lex_exact_over_rand": 1.8095738667054784,
+    "lex_norm_over_rand": 1.9622624445454755,
+    "lex_exact_over_rand_matched": 3.203494781711197,
+    "lex_norm_over_rand_matched": 3.1661439033091057,
+    "lex_neg_over_rand_matched": 1.3157075134654341,
+    "mem_share_of_jump": 0.23744742091101712,
+    "ceiling_share": 0.621339749897285,
+    "sharp_share_of_jumps": 0.055366308375722144,
+    "sharp_share_of_jump_mass": 0.0966793534329782,
+    "first4_share_of_jump_mass": 0.011036726198525366,
+    "behind8_share_of_jump_mass": 0.08717405735774714
+  },
+  "half_B_outside_top10": {
+    "jumps": 191384,
+    "jump_mass": 23955.490745306015,
+    "mem_covered": 6107.570420265198,
+    "leftover": 17847.920325040817,
+    "rand_share": 0.09736198381911619,
+    "lex_exact_share": 0.10947527091294633,
+    "lex_norm_share": 0.1198157973472361,
+    "lex_neg_share": 0.026621603169391647,
+    "rand_m_exact_share": 0.053797338616647844,
+    "rand_m_norm_share": 0.05900058508331793,
+    "rand_m_neg_share": 0.020167023455295162,
+    "lex_exact_over_rand": 1.1244149576526172,
+    "lex_norm_over_rand": 1.230621980441932,
+    "lex_exact_over_rand_matched": 2.034957002112158,
+    "lex_norm_over_rand_matched": 2.030756087893666,
+    "lex_neg_over_rand_matched": 1.3200561415721335,
+    "mem_share_of_jump": 0.25495492808728837,
+    "ceiling_share": 0.5619428382107894,
+    "sharp_share_of_jumps": 0.03258370605693266,
+    "sharp_share_of_jump_mass": 0.05298120403392701,
+    "first4_share_of_jump_mass": 0.010866429071228508,
+    "behind8_share_of_jump_mass": 0.07898486429592831
+  },
+  "scan_top10_leftover_share_B": 0.4830508928266803,
+  "plan_memory_leftover_share_B": 0.7625525790889829,
+  "rule": {
+    "concentrated": false,
+    "lexical_pass_exact": false,
+    "lexical_pass_norm": false
+  }
+}

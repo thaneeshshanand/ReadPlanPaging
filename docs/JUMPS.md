@@ -162,3 +162,38 @@ c. Position: the share of jump mass in the first 4 blocks, and in the 8 blocks j
 Alignment check, now a test (`tests/test_jumps.py`): on the repeated random-token prompts
 (synthetic, and the captured controls when present), the lookup ranks the block holding the
 token after the earlier copy among its first two blocks on every scored step.
+
+## Result (2026-11-18, full run at commit e763cfc; `results/jumps-4k/`)
+
+Verdict as the rule is written: **NO-GO** (rule 3). On none of the three models is the jump
+mass concentrated (rule 1 not met), and on none does lexical pass outside the top 10% of heads
+(rule 2 not met). Flag: the positive control FAILED under both definitions. The negative
+control passes on all three models. The normalised-text lookup gives the same verdict.
+Jump counts agree with the committed variant-e runs to within 0.13%.
+
+Rule inputs (held-out half B; heads outside the top 10% ranked on half A):
+
+| Model | Top 10% of heads hold | Lexical (exact) | Random | Lexical / random | Lexical (text) |
+|---|---|---|---|---|---|
+| Qwen2.5-1.5B | 32.3% | 14.1% | 14.8% | 0.9 | 15.6% |
+| Qwen2.5-3B | 33.1% | 14.0% | 15.3% | 0.9 | 15.5% |
+| Granite 3.3 2B | 35.2% | 10.9% | 9.7% | 1.1 | 12.0% |
+
+Note on the word "jump": only 3-5% of these events (held-out half, heads outside the top 10%;
+5-7% over all prompts and heads) have one block holding half the missed mass. A "jump" here
+therefore means attention the stale plan misses, mostly spread over many COLD blocks, not a
+move of attention to a single block.
+
+Beside the rule (same half and heads; does not decide):
+
+| Model | Ceiling | Sharp jumps (count / mass) | First 4 blocks | 8 behind recent | Leftover: plan + memory | Leftover: scan top 10% |
+|---|---|---|---|---|---|---|
+| Qwen2.5-1.5B | 60.7% | 4.1% / 5.7% | 0.9% | 1.7% | 77.4% | 51.7% |
+| Qwen2.5-3B | 62.7% | 5.1% / 6.9% | 1.2% | 2.0% | 75.9% | 50.8% |
+| Granite 3.3 2B | 56.2% | 3.3% / 5.3% | 1.1% | 7.9% | 76.3% | 48.3% |
+
+Other reported numbers (all 40 prompts, all heads): memory covers 22-23% of jump mass on every
+model. Lexical beats random over all heads (Qwen 1.5B 19.8% against 14.8%; Qwen 3B 17.7%
+against 15.2%; Granite 15.9% against 9.3%). The edge comes from the top 10% of heads: outside
+them it disappears. The lookup returns a median of 12-15 blocks per step (cap 13) and nothing
+on about 13% of steps.

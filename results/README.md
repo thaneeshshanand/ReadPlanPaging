@@ -19,3 +19,9 @@ reference tokens each, MPS. Produced by `phase0/analyze_d.py --runs runs/prescre
 - `meta.json`: analysis config, git commit, and each run's config, seed and model revision
   (paths made relative to the repo).
 - `NOTES.md`: run notes, where there are any.
+
+## jumps-4k
+
+Side analysis of docs/JUMPS.md (can token matches predict the attention a stale plan misses?):
+decision.json (verdict, controls, every reported number), per model summary.json, per_head.csv,
+per_layer.csv and the capture meta. Verdict: no-go; the positive control failed (flagged).

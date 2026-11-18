@@ -1,0 +1,112 @@
+{
+  "created_utc": "2026-11-18T18:40:12.817380+00:00",
+  "args": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "prompts": "data/prompts/qwen_cont_4k.jsonl",
+    "repeat": 0,
+    "out": "runs/jumps/qwen2.5-1.5b",
+    "max_context": 4096,
+    "max_new_tokens": 129,
+    "warm_bits": 3,
+    "hot_bits": 4,
+    "key_codec": "group256",
+    "limit": null,
+    "device": "auto",
+    "chat_template": "auto",
+    "prefill_chunk": 2048,
+    "seed": 0
+  },
+  "variants": [
+    {
+      "kind": "coldkeys",
+      "bits": 3,
+      "R": 4,
+      "eps_w": 0.001,
+      "eps_c": 0.02,
+      "scan_bits": 1,
+      "scan_codec": "minmax",
+      "kcodec": "group256",
+      "hot_bits": 4,
+      "vbits": null,
+      "name": "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
+    }
+  ],
+  "jump_threshold": 0.05,
+  "seed": 0,
+  "device": "mps",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "model_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+  "model_shape": {
+    "layers": 28,
+    "q_heads": 12,
+    "kv_heads": 2
+  },
+  "block_size": 16,
+  "code": {
+    "script": "/Users/thaneesh/RESEARCH/ReadPlanPaging/phase0/capture.py",
+    "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+    "git_commit": "e763cfc7770405255d2e7ee827698db5a2ea8d23",
+    "git_dirty": false
+  },
+  "versions": {
+    "python": "3.13.5",
+    "python_executable": "/Users/thaneesh/venvs/rpp-torchlatest/bin/python",
+    "torch": "2.15.0",
+    "torch_cuda": null,
+    "transformers": "4.57.3",
+    "numpy": "2.5.5"
+  },
+  "prereg_sha256": "9163bfcd18c6ee928507923d9070e7ed538677a6fda5560ffdf4e31aeb4214c8",
+  "invocations": [
+    {
+      "created_utc": "2026-11-18T18:40:12.817380+00:00",
+      "args": {
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+        "prompts": "data/prompts/qwen_cont_4k.jsonl",
+        "repeat": 0,
+        "out": "runs/jumps/qwen2.5-1.5b",
+        "max_context": 4096,
+        "max_new_tokens": 129,
+        "warm_bits": 3,
+        "hot_bits": 4,
+        "key_codec": "group256",
+        "limit": null,
+        "device": "auto",
+        "chat_template": "auto",
+        "prefill_chunk": 2048,
+        "seed": 0
+      },
+      "jump_threshold": 0.05,
+      "seed": 0,
+      "device": "mps",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "model_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "model_shape": {
+        "layers": 28,
+        "q_heads": 12,
+        "kv_heads": 2
+      },
+      "block_size": 16,
+      "code": {
+        "script": "/Users/thaneesh/RESEARCH/ReadPlanPaging/phase0/capture.py",
+        "script_sha256": "509eab1beb2a3acbdd13e28db083d4332f2cd79be343f20dbb5041f19c19c102",
+        "git_commit": "e763cfc7770405255d2e7ee827698db5a2ea8d23",
+        "git_dirty": false
+      },
+      "versions": {
+        "python": "3.13.5",
+        "python_executable": "/Users/thaneesh/venvs/rpp-torchlatest/bin/python",
+        "torch": "2.15.0",
+        "torch_cuda": null,
+        "transformers": "4.57.3",
+        "numpy": "2.5.5"
+      },
+      "prereg_sha256": "9163bfcd18c6ee928507923d9070e7ed538677a6fda5560ffdf4e31aeb4214c8",
+      "variants": [
+        "coldkeys_R4_w0.001_c0.02_h4b3_kgroup256"
+      ]
+    }
+  ]
+}
